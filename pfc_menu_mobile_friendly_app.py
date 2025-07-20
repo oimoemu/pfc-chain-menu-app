@@ -83,4 +83,3 @@ st.dataframe(
 st.markdown("---")
 st.caption("© 2025 PFCチェッカー - モバイル対応済")
 
-
