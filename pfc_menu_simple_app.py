@@ -67,10 +67,19 @@ if store:
     cols = [col for col in filtered_df.columns if col not in ["店舗名", "店舗よみ", "店舗カナ", "店舗ローマ字"]]
     menu_cell_style_jscode = JsCode("""
         function(params) {
+            let text = params.value || '';
+            let size = '0.95em';
+            if (text.length > 16) {
+                size = '0.8em';
+            }
+            if (text.length > 32) {
+                size = '0.7em';
+            }
             return {
-                'font-size': '0.95em',
+                'font-size': size,
                 'font-weight': 'bold',
-                'white-space': 'pre-wrap'
+                'white-space': 'pre-wrap',
+                'line-height': '1.1'
             }
         }
     """)
