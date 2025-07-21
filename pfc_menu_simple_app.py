@@ -18,7 +18,6 @@ def get_yomi(text):
 if not all(col in df.columns for col in ["店舗よみ", "店舗カナ", "店舗ローマ字"]):
     df["店舗よみ"], df["店舗カナ"], df["店舗ローマ字"] = zip(*df["店舗名"].map(get_yomi))
 
-# ★ ページを「ワイド」化して最大横幅確保
 st.set_page_config(page_title="PFCチェーンメニュー", layout="wide")
 st.title("PFCチェーンメニュー検索")
 
@@ -66,22 +65,28 @@ if store:
     ascending = st.radio("並び順", ["昇順", "降順"], horizontal=True) == "昇順"
     filtered_df = filtered_df.sort_values(by=sort_by, ascending=ascending)
     cols = [col for col in filtered_df.columns if col not in ["店舗名", "店舗よみ", "店舗カナ", "店舗ローマ字"]]
-    cell_style_jscode = JsCode("""
-    function(params) {
-        if (params.colDef.field === 'メニュー名') {
+    menu_cell_style_jscode = JsCode("""
+        function(params) {
             return {
-                'font-size': '1.1em',
+                'font-size': '0.95em',
                 'font-weight': 'bold',
                 'white-space': 'pre-wrap'
             }
         }
-        return {'font-size': '0.8em', 'max-width': '36px', 'white-space': 'pre-wrap', 'padding': '1px'};
-    }
+    """)
+    cell_style_jscode = JsCode("""
+        function(params) {
+            return {
+                'font-size': '0.8em',
+                'max-width': '36px',
+                'white-space': 'pre-wrap',
+                'padding': '1px'
+            }
+        }
     """)
     gb = GridOptionsBuilder.from_dataframe(filtered_df[cols])
     gb.configure_selection('multiple', use_checkbox=True)
-    # ★ メニュー名カラムのみ幅500でmin/max指定＆ピン留め
-    gb.configure_column("メニュー名", cellStyle=cell_style_jscode, width=500, minWidth=500, maxWidth=650, pinned="left", resizable=False)
+    gb.configure_column("メニュー名", cellStyle=menu_cell_style_jscode, width=200, minWidth=200, maxWidth=260, pinned="left", resizable=False)
     for col in cols:
         if col != "メニュー名":
             gb.configure_column(col, width=36, minWidth=20, maxWidth=60, resizable=False, cellStyle=cell_style_jscode)
