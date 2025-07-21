@@ -8,10 +8,9 @@ df = pd.read_csv("menu_data_all_chains.csv")
 if "カロリー" not in df.columns:
     df["カロリー"] = 0
 
-# 店舗ごとによみ（ひらがな）列を作る
+# 店舗よみ列を作る
 def get_yomi(text):
-    hira = jaconv.kata2hira(jaconv.z2h(str(text), kana=True, digit=False, ascii=False))
-    return hira
+    return jaconv.kata2hira(jaconv.z2h(str(text), kana=True, digit=False, ascii=False))
 
 if "店舗よみ" not in df.columns:
     df["店舗よみ"] = df["店舗名"].apply(get_yomi)
@@ -19,18 +18,25 @@ if "店舗よみ" not in df.columns:
 st.set_page_config(page_title="PFCチェーンメニュー", layout="centered")
 st.title("PFCチェーンメニュー検索")
 
-store_input = st.text_input("店舗名を入力（ひらがなOK・一部でも可）")
+# 店舗リアルタイムサジェスト
+store_input = st.text_input("店舗名を入力（ひらがなOK・一部でも可）", value="", key="store_search")
+
 candidates = []
-if store_input:
+if len(store_input) > 0:
     store_input_hira = get_yomi(store_input)
-    candidates = df[df["店舗よみ"].str.contains(store_input_hira) | df["店舗名"].str.contains(store_input)].店舗名.unique().tolist()
-if len(candidates) == 0 and store_input:
-    st.warning("該当する店舗がありません")
-store = None
-if len(candidates) > 0:
-    store = st.selectbox("候補店舗を選んでください", candidates)
+    match = df[df["店舗よみ"].str.contains(store_input_hira) | df["店舗名"].str.contains(store_input)].店舗名.unique().tolist()
+    candidates = match[:10]
+    if candidates:
+        st.markdown("#### 候補店舗（クリックで選択）")
+        for c in candidates:
+            if st.button(c, key=f"select_{c}"):
+                st.session_state["selected_store"] = c
+                st.experimental_rerun()
+
+store = st.session_state.get("selected_store", None)
 
 if store:
+    st.success(f"選択店舗：{store}")
     filtered_df = df[df["店舗名"] == store]
     keyword = st.text_input("メニュー名で絞り込み（例：チーズ/カレーなど）")
     if keyword:
