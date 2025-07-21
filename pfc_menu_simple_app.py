@@ -75,15 +75,15 @@ if store:
                 'white-space': 'pre-wrap'
             }
         }
-        return {'font-size': '0.85em', 'max-width': '44px', 'white-space': 'pre-wrap', 'padding': '1px'};
+        return {'font-size': '0.8em', 'max-width': '36px', 'white-space': 'pre-wrap', 'padding': '1px'};
     }
     """)
     gb = GridOptionsBuilder.from_dataframe(filtered_df[cols])
     gb.configure_selection('multiple', use_checkbox=True)
-    gb.configure_column("メニュー名", cellStyle=cell_style_jscode, width=500, pinned="left")
+    gb.configure_column("メニュー名", cellStyle=cell_style_jscode, width=600, pinned="left", resizable=False)
     for col in cols:
         if col != "メニュー名":
-            gb.configure_column(col, width=44, cellStyle=cell_style_jscode)
+            gb.configure_column(col, width=36, resizable=False, cellStyle=cell_style_jscode)
     grid_response = AgGrid(
         filtered_df[cols],
         gridOptions=gb.build(),
