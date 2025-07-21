@@ -122,8 +122,9 @@ if store:
         allow_unsafe_jscode=True
     )
     selected_rows = grid_response["selected_rows"]
+    # ★ TypeError対策でdict以外もOKに！
     if selected_rows is not None:
-        st.session_state[selected_key] = [row["メニュー名"] for row in selected_rows]
+        st.session_state[selected_key] = [row.get("メニュー名", None) for row in selected_rows if isinstance(row, dict) and row.get("メニュー名", None) is not None]
     if selected_rows is not None and len(selected_rows) > 0:
         selected_df = pd.DataFrame(selected_rows)
         total = selected_df[["カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"]].sum()
