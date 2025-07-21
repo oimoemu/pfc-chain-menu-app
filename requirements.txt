@@ -4,3 +4,4 @@ plotly
 streamlit-aggrid
 jaconv
 Unidecode
+matplotlib
