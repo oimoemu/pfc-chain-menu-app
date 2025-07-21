@@ -14,10 +14,10 @@ def load_data():
 df = load_data()
 
 # 店舗選択（初期状態で何も選ばれていない）
-store_options = ["店舗を選んでください"] + sorted(df["店舗名"].unique().tolist())
-store = st.selectbox("店舗を選んでください", store_options)
+store_options = ["店舗名を入力してください"] + sorted(df["店舗名"].unique().tolist())
+store = st.selectbox("店舗名を入力してください", store_options)
 
-if store != "店舗を選んでください":
+if store != "店舗名を入力してください":
     filtered_df = df[df["店舗名"] == store]
 
     # メニュー名検索（部分一致）
@@ -39,8 +39,17 @@ if store != "店舗を選んでください":
     )
 
     # 表表示（店舗名を除いて、メニュー名を最初に）
+    selected = st.multiselect("PFCを合算したいメニューを選択してください", filtered_df["メニュー名"].tolist())
+    if selected:
+        total = filtered_df[filtered_df["メニュー名"].isin(selected)][["たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"]].sum()
+        st.markdown(
+            "### ✅ 選択メニューの合計PFC\n- たんぱく質: **{:.1f}g**\n- 脂質: **{:.1f}g**\n- 炭水化物: **{:.1f}g**".format(
+                total[0], total[1], total[2]
+            )
+        )
+
     cols = [col for col in filtered_df.columns if col != "店舗名"]
     st.dataframe(filtered_df[cols].reset_index(drop=True))
 
 else:
-    st.info("店舗を選んでください。")
+    st.info("店舗名を入力してください。")
