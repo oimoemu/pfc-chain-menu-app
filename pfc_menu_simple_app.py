@@ -98,31 +98,30 @@ if store:
     selected_key = "selected_menus"
     if selected_key not in st.session_state:
         st.session_state[selected_key] = []
-
     prev_selected = st.session_state[selected_key]
 
-    # pre_selected_rowsで復元
     gb = GridOptionsBuilder.from_dataframe(filtered_df[cols])
-    gb.configure_selection(
-        'multiple',
-        use_checkbox=True,
-        pre_selected_rows=[i for i, row in filtered_df[cols].reset_index().iterrows() if row["メニュー名"] in prev_selected]
-    )
+    gb.configure_selection('multiple', use_checkbox=True)
     gb.configure_column("メニュー名", cellStyle=menu_cell_style_jscode, width=200, minWidth=200, maxWidth=260, pinned="left", resizable=False)
     for col in cols:
         if col != "メニュー名":
             gb.configure_column(col, width=36, minWidth=20, maxWidth=60, resizable=False, cellStyle=cell_style_jscode)
 
+    # ★ 行IDをメニュー名にすることで選択が常に保持される！
+    grid_options = gb.build()
+    grid_options['getRowNodeId'] = JsCode("function(data){ return data['メニュー名']; }")
+
     grid_response = AgGrid(
         filtered_df[cols],
-        gridOptions=gb.build(),
+        gridOptions=grid_options,
         update_mode=GridUpdateMode.SELECTION_CHANGED,
         fit_columns_on_grid_load=False,
         height=430,
-        allow_unsafe_jscode=True
+        allow_unsafe_jscode=True,
+        pre_selected_rows=prev_selected  # ここは「メニュー名」リスト
     )
     selected_rows = grid_response["selected_rows"]
-    # ★ TypeError対策でdict以外もOKに！
+    # 選択メニュー名をセッションに保存
     if selected_rows is not None:
         st.session_state[selected_key] = [row.get("メニュー名", None) for row in selected_rows if isinstance(row, dict) and row.get("メニュー名", None) is not None]
     if selected_rows is not None and len(selected_rows) > 0:
