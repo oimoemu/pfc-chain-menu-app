@@ -52,7 +52,7 @@ if store:
         height=400
     )
     selected_rows = grid_response["selected_rows"]
-    if selected_rows:
+    if selected_rows is not None and len(selected_rows) > 0:
         selected_df = pd.DataFrame(selected_rows)
         total = selected_df[["カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"]].sum()
         st.markdown(
@@ -64,3 +64,4 @@ if store:
         )
 else:
     st.info("店舗名を入力してください（ひらがな可）。")
+        
