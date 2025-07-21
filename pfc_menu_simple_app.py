@@ -18,7 +18,8 @@ def get_yomi(text):
 if not all(col in df.columns for col in ["店舗よみ", "店舗カナ", "店舗ローマ字"]):
     df["店舗よみ"], df["店舗カナ"], df["店舗ローマ字"] = zip(*df["店舗名"].map(get_yomi))
 
-st.set_page_config(page_title="PFCチェーンメニュー", layout="centered")
+# ★ ページを「ワイド」化して最大横幅確保
+st.set_page_config(page_title="PFCチェーンメニュー", layout="wide")
 st.title("PFCチェーンメニュー検索")
 
 st.markdown("""
@@ -79,10 +80,11 @@ if store:
     """)
     gb = GridOptionsBuilder.from_dataframe(filtered_df[cols])
     gb.configure_selection('multiple', use_checkbox=True)
-    gb.configure_column("メニュー名", cellStyle=cell_style_jscode, width=500, pinned="left", resizable=False)
+    # ★ メニュー名カラムのみ幅500でmin/max指定＆ピン留め
+    gb.configure_column("メニュー名", cellStyle=cell_style_jscode, width=500, minWidth=500, maxWidth=650, pinned="left", resizable=False)
     for col in cols:
         if col != "メニュー名":
-            gb.configure_column(col, width=36, resizable=False, cellStyle=cell_style_jscode)
+            gb.configure_column(col, width=36, minWidth=20, maxWidth=60, resizable=False, cellStyle=cell_style_jscode)
     grid_response = AgGrid(
         filtered_df[cols],
         gridOptions=gb.build(),
