@@ -1,4 +1,8 @@
 
+def hira_to_kata(text):
+    return "".join([chr(ord(char) + 96) if "ぁ" <= char <= "ん" else char for char in text])
+
+
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
@@ -14,10 +18,17 @@ def load_data():
 df = load_data()
 
 # 店舗選択（初期状態で何も選ばれていない）
-store_options = ["店舗名を入力してください"] + sorted(df["店舗名"].unique().tolist())
-store = st.selectbox("店舗名を入力してください", store_options)
 
-if store != "店舗名を入力してください":
+store_input = st.text_input("店舗名を入力してください（ひらがなでも可）")
+store = None
+if store_input:
+    katakana_input = hira_to_kata(store_input)
+    matched_stores = [s for s in df["店舗名"].unique() if katakana_input in s or store_input in s]
+    if matched_stores:
+        store = st.selectbox("候補店舗を選んでください", matched_stores)
+
+
+if store is not None:
     filtered_df = df[df["店舗名"] == store]
 
     # メニュー名検索（部分一致）
@@ -39,7 +50,7 @@ if store != "店舗名を入力してください":
     )
 
     # 表表示（店舗名を除いて、メニュー名を最初に）
-    selected = st.multiselect("PFCを合算したいメニューを選択してください", filtered_df["メニュー名"].tolist())
+    selected = st.multiselect("PFCを合算したいメニューを選択してください", filtered_df["メニュー名"].tolist(), key="sum_select")
     if selected:
         total = filtered_df[filtered_df["メニュー名"].isin(selected)][["たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"]].sum()
         st.markdown(
@@ -52,4 +63,4 @@ if store != "店舗名を入力してください":
     st.dataframe(filtered_df[cols].reset_index(drop=True))
 
 else:
-    st.info("店舗名を入力してください。")
+    st.info("店舗名を入力してください（ひらがな可）。")
