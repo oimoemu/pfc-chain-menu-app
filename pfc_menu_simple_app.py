@@ -12,7 +12,7 @@ if "カロリー" not in df.columns:
 def get_yomi(text):
     hira = jaconv.kata2hira(jaconv.z2h(str(text), kana=True, digit=False, ascii=False))
     kata = jaconv.hira2kata(hira)
-    roma = unidecode.unidecode(text)  # ローマ字化
+    roma = unidecode.unidecode(text)  # ローマ字化（英語/外来語対応用）
     return hira, kata, roma.lower()
 
 if not all(col in df.columns for col in ["店舗よみ", "店舗カナ", "店舗ローマ字"]):
@@ -20,17 +20,6 @@ if not all(col in df.columns for col in ["店舗よみ", "店舗カナ", "店舗
 
 st.set_page_config(page_title="PFCチェーンメニュー", layout="centered")
 st.title("PFCチェーンメニュー検索")
-
-# カラム用：PFC系のヘッダーを小さく
-st.markdown("""
-    <style>
-    .ag-header-cell-label {
-        font-size: 0.8em !important;
-        padding-top: 0px !important;
-        padding-bottom: 0px !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
 
 store_input = st.text_input("店舗名を入力（ひらがな・カタカナ・英語・一部でも可）", value="", key="store_search")
 candidates = []
@@ -75,15 +64,15 @@ if store:
                 'white-space': 'pre-wrap'
             }
         }
-        return {'font-size': '0.8em', 'max-width': '36px', 'white-space': 'pre-wrap', 'padding': '1px'};
+        return {'font-size': '0.85em', 'max-width': '60px', 'white-space': 'pre-wrap'};
     }
     """)
     gb = GridOptionsBuilder.from_dataframe(filtered_df[cols])
     gb.configure_selection('multiple', use_checkbox=True)
-    gb.configure_column("メニュー名", cellStyle=cell_style_jscode, width=600, pinned="left", resizable=False)
+    gb.configure_column("メニュー名", cellStyle=cell_style_jscode, width=370)
     for col in cols:
         if col != "メニュー名":
-            gb.configure_column(col, width=36, resizable=False, cellStyle=cell_style_jscode)
+            gb.configure_column(col, width=68, cellStyle=cell_style_jscode)
     grid_response = AgGrid(
         filtered_df[cols],
         gridOptions=gb.build(),
