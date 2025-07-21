@@ -79,7 +79,7 @@ if store:
     """)
     gb = GridOptionsBuilder.from_dataframe(filtered_df[cols])
     gb.configure_selection('multiple', use_checkbox=True)
-    gb.configure_column("メニュー名", cellStyle=cell_style_jscode, width=600, pinned="left", resizable=False)
+    gb.configure_column("メニュー名", cellStyle=cell_style_jscode, width=500, pinned="left", resizable=False)
     for col in cols:
         if col != "メニュー名":
             gb.configure_column(col, width=36, resizable=False, cellStyle=cell_style_jscode)
