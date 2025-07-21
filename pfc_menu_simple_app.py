@@ -4,6 +4,7 @@ import pandas as pd
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, JsCode
 import jaconv
 import unidecode
+import matplotlib.pyplot as plt
 
 df = pd.read_csv("menu_data_all_chains.csv")
 if "カロリー" not in df.columns:
@@ -141,6 +142,14 @@ if store:
             f"- 脂質: **{total['脂質 (g)']:.1f}g**\n"
             f"- 炭水化物: **{total['炭水化物 (g)']:.1f}g**"
         )
+
+        # ★ここからPFCバランス円グラフ
+        pfc_vals = [total["たんぱく質 (g)"], total["脂質 (g)"], total["炭水化物 (g)"]]
+        pfc_labels = ["たんぱく質", "脂質", "炭水化物"]
+        fig, ax = plt.subplots()
+        ax.pie(pfc_vals, labels=pfc_labels, autopct="%.1f%%", startangle=90, counterclock=False)
+        ax.set_title("PFCバランス")
+        st.pyplot(fig)
 else:
     st.info("店舗名を入力してください（ひらがな・カタカナ・英語もOK）")
         
