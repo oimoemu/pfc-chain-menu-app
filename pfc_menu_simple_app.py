@@ -93,12 +93,26 @@ if store:
             }
         }
     """)
+    
+    # --- 選択状態をセッションで管理 ---
+    selected_key = "selected_menus"
+    if selected_key not in st.session_state:
+        st.session_state[selected_key] = []
+
+    prev_selected = st.session_state[selected_key]
+
+    # pre_selected_rowsで復元
     gb = GridOptionsBuilder.from_dataframe(filtered_df[cols])
-    gb.configure_selection('multiple', use_checkbox=True)
+    gb.configure_selection(
+        'multiple',
+        use_checkbox=True,
+        pre_selected_rows=[i for i, row in filtered_df[cols].reset_index().iterrows() if row["メニュー名"] in prev_selected]
+    )
     gb.configure_column("メニュー名", cellStyle=menu_cell_style_jscode, width=200, minWidth=200, maxWidth=260, pinned="left", resizable=False)
     for col in cols:
         if col != "メニュー名":
             gb.configure_column(col, width=36, minWidth=20, maxWidth=60, resizable=False, cellStyle=cell_style_jscode)
+
     grid_response = AgGrid(
         filtered_df[cols],
         gridOptions=gb.build(),
@@ -108,6 +122,8 @@ if store:
         allow_unsafe_jscode=True
     )
     selected_rows = grid_response["selected_rows"]
+    if selected_rows is not None:
+        st.session_state[selected_key] = [row["メニュー名"] for row in selected_rows]
     if selected_rows is not None and len(selected_rows) > 0:
         selected_df = pd.DataFrame(selected_rows)
         total = selected_df[["カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"]].sum()
