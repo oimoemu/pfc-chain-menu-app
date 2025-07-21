@@ -8,7 +8,6 @@ df = pd.read_csv("menu_data_all_chains.csv")
 if "カロリー" not in df.columns:
     df["カロリー"] = 0
 
-# 店舗よみ列を作る
 def get_yomi(text):
     return jaconv.kata2hira(jaconv.z2h(str(text), kana=True, digit=False, ascii=False))
 
@@ -18,20 +17,24 @@ if "店舗よみ" not in df.columns:
 st.set_page_config(page_title="PFCチェーンメニュー", layout="centered")
 st.title("PFCチェーンメニュー検索")
 
-# 店舗リアルタイムサジェスト
+# 入力欄
 store_input = st.text_input("店舗名を入力（ひらがなOK・一部でも可）", value="", key="store_search")
-
 candidates = []
 if len(store_input) > 0:
     store_input_hira = get_yomi(store_input)
     match = df[df["店舗よみ"].str.contains(store_input_hira) | df["店舗名"].str.contains(store_input)].店舗名.unique().tolist()
     candidates = match[:10]
-    if candidates:
-        st.markdown("#### 候補店舗（クリックで選択）")
-        for c in candidates:
-            if st.button(c, key=f"select_{c}"):
-                st.session_state["selected_store"] = c
-                st.experimental_rerun()
+
+# セッション状態で選択店舗を保存
+if "selected_store" not in st.session_state:
+    st.session_state["selected_store"] = None
+
+# 店舗候補をリストで即時表示＆選択時にセッションに格納
+if len(candidates) > 0:
+    st.markdown("#### 候補店舗（クリックで選択）")
+    for c in candidates:
+        if st.button(c, key=f"select_{c}"):
+            st.session_state["selected_store"] = c
 
 store = st.session_state.get("selected_store", None)
 
