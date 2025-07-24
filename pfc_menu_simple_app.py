@@ -21,6 +21,63 @@ if not all(col in df.columns for col in ["店舗よみ", "店舗カナ", "店舗
 
 st.set_page_config(page_title="PFCチェーンメニュー", layout="wide")
 
+# 店舗名を選択（先に選ぶ）
+店舗一覧 = sorted(df["店舗名"].dropna().unique())
+選択店舗 = st.selectbox("店舗名を選んでください", ["すべて"] + 店舗一覧)
+
+# 店舗でフィルター
+if 選択店舗 != "すべて":
+    df = df[df["店舗名"] == 選択店舗]
+
+# 検索入力（メニュー名フィルターとして扱う）
+メニュー検索 = st.text_input("メニュー名で検索（任意）").strip()
+if メニュー検索:
+    df = df[df["メニュー名"].str.contains(メニュー検索, case=False, na=False)]
+
+# カテゴリ選択（店舗＋検索で絞った後のカテゴリ）
+カテゴリ一覧 = sorted(df["カテゴリ"].dropna().unique())
+選択カテゴリ = st.selectbox("カテゴリを選んでください", ["すべて"] + カテゴリ一覧)
+
+if 選択カテゴリ != "すべて":
+    df = df[df["カテゴリ"] == 選択カテゴリ]
+
+# 並び替え
+sort_column = st.selectbox("並び替え項目", ["たんぱく質", "脂質", "炭水化物", "カロリー"])
+sort_order = st.radio("並び替え順", ["高い順", "低い順"])
+ascending = sort_order == "低い順"
+df = df.sort_values(by=sort_column, ascending=ascending)
+
+# メニュー選択
+選択メニュー = st.multiselect("PFCを集計するメニューを選択", df["メニュー名"].tolist())
+選択df = df[df["メニュー名"].isin(選択メニュー)]
+
+# メニュー表示
+st.dataframe(df)
+
+# 選択メニューのPFC合計と円グラフ
+if not 選択df.empty:
+    total_p = 選択df["たんぱく質"].sum()
+    total_f = 選択df["脂質"].sum()
+    total_c = 選択df["炭水化物"].sum()
+
+    st.markdown(f"### ✅ 選択メニューのPFC合計")
+    st.markdown(f"- たんぱく質：{total_p:.1f} g")
+    st.markdown(f"- 脂質：{total_f:.1f} g")
+    st.markdown(f"- 炭水化物：{total_c:.1f} g")
+
+    import matplotlib.pyplot as plt
+    fig, ax = plt.subplots()
+    labels = ["たんぱく質", "脂質", "炭水化物"]
+    values = [total_p, total_f, total_c]
+    colors = ["#66b3ff", "#ff9999", "#99ff99"]
+    ax.pie(values, labels=labels, autopct="%1.1f%%", startangle=90, colors=colors)
+    ax.axis("equal")
+    st.pyplot(fig)
+else:
+    st.info("メニューを選択するとPFC合計と円グラフが表示されます。")
+
+
+
 # 店舗名で検索入力
 店舗検索 = st.text_input("店舗名で検索（ひらがな・カタカナ・漢字など）").strip()
 if 店舗検索:
