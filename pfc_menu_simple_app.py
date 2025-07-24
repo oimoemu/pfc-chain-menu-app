@@ -1,6 +1,12 @@
 import matplotlib.font_manager as fm
 import streamlit as st
 
+fonts = fm.findSystemFonts(fontpaths=None)
+st.write("=== すべてのフォントファイル一覧 ===")
+st.write(fonts)
+import matplotlib.font_manager as fm
+import streamlit as st
+
 # すべてのフォントのファイルパス一覧
 fonts = fm.findSystemFonts(fontpaths=None, fontext='ttf')
 # 日本語っぽい名前だけ表示
