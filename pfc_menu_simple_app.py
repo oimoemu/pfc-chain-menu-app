@@ -39,7 +39,7 @@ def get_yomi(text):
 
 def 店舗検索ページ():
     店舗一覧 = sorted(df["店舗名"].dropna().unique())
-    検索語 = st.text_input("店舗名を入力", key="店舗検索欄").strip().lower()
+    検索語 = st.text_input("店舗名を入力", key=f"店舗検索欄_{st.session_state['ページ']}").strip().lower()
     st.session_state["検索語"] = 検索語
 
     候補店舗 = []
@@ -130,7 +130,7 @@ def get_yomi(text):
 # ページ1：店舗検索
 if st.session_state["ページ"] == "店舗検索":
     店舗一覧 = sorted(df["店舗名"].dropna().unique())
-    検索語 = st.text_input("店舗名を入力", key="店舗検索欄").strip().lower()
+    検索語 = st.text_input("店舗名を入力", key=f"店舗検索欄_{st.session_state['ページ']}").strip().lower()
     st.session_state["検索語"] = 検索語
 
     候補店舗 = []
