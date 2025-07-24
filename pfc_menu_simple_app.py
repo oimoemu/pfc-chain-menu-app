@@ -20,6 +20,24 @@ if not all(col in df.columns for col in ["店舗よみ", "店舗カナ", "店舗
     df["店舗よみ"], df["店舗カナ"], df["店舗ローマ字"] = zip(*df["店舗名"].map(get_yomi))
 
 st.set_page_config(page_title="PFCチェーンメニュー", layout="wide")
+
+# チェーン店を選択
+店舗一覧 = sorted(df["チェーン名"].dropna().unique())
+選択店舗 = st.selectbox("チェーン店を選んでください", ["すべて"] + 店舗一覧)
+
+# 店舗に応じたフィルター
+if 選択店舗 != "すべて":
+    df = df[df["チェーン名"] == 選択店舗]
+
+# カテゴリ選択（店舗フィルター後に動的に変わる）
+カテゴリ一覧 = sorted(df["カテゴリ"].dropna().unique())
+選択カテゴリ = st.selectbox("カテゴリを選んでください", ["すべて"] + カテゴリ一覧)
+
+# カテゴリに応じてさらにフィルター
+if 選択カテゴリ != "すべて":
+    df = df[df["カテゴリ"] == 選択カテゴリ]
+
+
 st.title("PFCチェーンメニュー検索")
 
 st.markdown("""
@@ -31,18 +49,6 @@ st.markdown("""
     }
     </style>
     """, unsafe_allow_html=True)
-
-store_input = st.text_input("店舗名を入力（ひらがな・カタカナ・英語・一部でも可）", value="", key="store_search")
-
-
-# カテゴリフィルター追加
-カテゴリ一覧 = sorted(df["カテゴリ"].dropna().unique())
-選択カテゴリ = st.selectbox("カテゴリを選んでください", ["すべて"] + カテゴリ一覧)
-
-# カテゴリに応じてフィルター処理
-if 選択カテゴリ != "すべて":
-    df = df[df["カテゴリ"] == 選択カテゴリ]
-
 
 candidates = []
 if len(store_input) > 0:
