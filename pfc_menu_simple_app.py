@@ -32,6 +32,8 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
+store_input = st.text_input("店舗名を入力（ひらがな・カタカナ・英語・一部でも可）", value="", key="store_search")
+
 
 # カテゴリフィルター追加
 カテゴリ一覧 = sorted(df["カテゴリ"].dropna().unique())
@@ -42,7 +44,6 @@ if 選択カテゴリ != "すべて":
     df = df[df["カテゴリ"] == 選択カテゴリ]
 
 
-store_input = st.text_input("店舗名を入力（ひらがな・カタカナ・英語・一部でも可）", value="", key="store_search")
 candidates = []
 if len(store_input) > 0:
     hira = jaconv.kata2hira(jaconv.z2h(store_input, kana=True, digit=False, ascii=False))
