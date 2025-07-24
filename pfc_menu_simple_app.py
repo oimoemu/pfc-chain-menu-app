@@ -6,8 +6,8 @@ import unidecode
 import matplotlib
 import matplotlib.pyplot as plt
 
-# 日本語フォントを明示指定（ローカルならIPAexGothic, CloudならNoto Sans CJK JPなど）
-matplotlib.rcParams['font.family'] = 'IPAexGothic'
+# ▼ Mac用に日本語フォントを明示
+matplotlib.rcParams['font.family'] = ['Hiragino Sans', 'Yu Gothic', 'IPAexGothic', 'Noto Sans CJK JP', 'Osaka', 'sans-serif']
 
 df = pd.read_csv("menu_data_all_chains.csv")
 if "カロリー" not in df.columns:
@@ -185,7 +185,6 @@ if store:
             textprops={'fontsize': 10}
         )
         ax.set_title("PFCバランス")
-        # ラベル文字の色を円グラフの色に
         for text, color in zip(texts, colors):
             text.set_color(color)
         plt.tight_layout()
