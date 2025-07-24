@@ -21,18 +21,27 @@ if not all(col in df.columns for col in ["店舗よみ", "店舗カナ", "店舗
 
 st.set_page_config(page_title="PFCチェーンメニュー", layout="wide")
 
-# 店舗名を選択（先に選ぶ）
-店舗一覧 = sorted(df["店舗名"].dropna().unique())
-選択店舗 = st.selectbox("店舗名を選んでください", ["すべて"] + 店舗一覧)
+# 🔍 店舗名を検索 → 一覧から選択
+店舗検索 = st.text_input("店舗名で検索（ひらがな・カタカナ・漢字など）").strip()
 
-# 店舗でフィルター
+店舗一覧 = sorted(df["店舗名"].dropna().unique())
+if 店舗検索:
+    候補店舗 = [s for s in 店舗一覧 if 店舗検索 in s]
+else:
+    候補店舗 = 店舗一覧
+
+選択店舗 = st.selectbox("該当する店舗を選んでください", ["すべて"] + 候補店舗)
+
+# フィルター適用
 if 選択店舗 != "すべて":
     df = df[df["店舗名"] == 選択店舗]
 
-# 検索入力（メニュー名フィルターとして扱う）
-メニュー検索 = st.text_input("メニュー名で検索（任意）").strip()
-if メニュー検索:
-    df = df[df["メニュー名"].str.contains(メニュー検索, case=False, na=False)]
+
+
+
+if 選択店舗 != "すべて":
+    df = df[df["店舗名"] == 選択店舗]
+
 
 # カテゴリ選択（店舗＋検索で絞った後のカテゴリ）
 カテゴリ一覧 = sorted(df["カテゴリ"].dropna().unique())
