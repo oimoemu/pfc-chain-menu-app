@@ -21,11 +21,90 @@ if not all(col in df.columns for col in ["店舗よみ", "店舗カナ", "店舗
 
 st.set_page_config(page_title="PFCチェーンメニュー", layout="wide")
 
-if "店舗選択済み" not in st.session_state:
-    st.session_state["店舗選択済み"] = False
-    st.session_state["選択店舗"] = ""
+import jaconv
+from unidecode import unidecode
+
+# 初期状態の管理
+if "ページ" not in st.session_state:
+    st.session_state["ページ"] = "店舗検索"
 if "検索語" not in st.session_state:
     st.session_state["検索語"] = ""
+if "選択店舗" not in st.session_state:
+    st.session_state["選択店舗"] = ""
+
+# 店舗名を曖昧検索する補助関数
+def get_yomi(text):
+    hira = jaconv.kata2hira(jaconv.z2h(str(text), kana=True, digit=False, ascii=False))
+    roma = unidecode(text)
+    return hira.lower(), roma.lower()
+
+# ページ1：店舗検索
+if st.session_state["ページ"] == "店舗検索":
+    st.header("🔍 店舗名検索（ひらがな・カタカナ・漢字・英語対応）")
+    店舗一覧 = sorted(df["店舗名"].dropna().unique())
+    検索語 = st.text_input("店舗名を入力", key="店舗検索欄").strip().lower()
+    st.session_state["検索語"] = 検索語
+
+    候補店舗 = []
+    for 店舗 in 店舗一覧:
+        よみ, ローマ = get_yomi(店舗)
+        if (検索語 in 店舗.lower()) or (検索語 in よみ) or (検索語 in ローマ):
+            候補店舗.append(店舗)
+
+    if not 候補店舗:
+        st.info("該当する店舗が見つかりません")
+    else:
+        選択店舗 = st.selectbox("該当する店舗を選んでください", 候補店舗, key="店舗候補選択")
+        if st.button("この店舗を選ぶ"):
+            st.session_state["選択店舗"] = 選択店舗
+            st.session_state["ページ"] = "メニュー表示"
+            st.experimental_rerun()
+
+# ページ2：メニュー表示
+elif st.session_state["ページ"] == "メニュー表示":
+    選択店舗 = st.session_state["選択店舗"]
+    st.header(f"🍽 {選択店舗} のメニュー")
+    df = df[df["店舗名"] == 選択店舗]
+
+    if st.button("🔙 店舗を再選択"):
+        st.session_state["ページ"] = "店舗検索"
+        st.experimental_rerun()
+
+    カテゴリ一覧 = sorted(df["カテゴリ"].dropna().unique())
+    選択カテゴリ = st.selectbox("カテゴリを選んでください", ["すべて"] + カテゴリ一覧)
+    if 選択カテゴリ != "すべて":
+        df = df[df["カテゴリ"] == 選択カテゴリ]
+
+    sort_column = st.selectbox("並び替え項目", ["たんぱく質", "脂質", "炭水化物", "カロリー"])
+    sort_order = st.radio("並び替え順", ["高い順", "低い順"])
+    ascending = sort_order == "低い順"
+    df = df.sort_values(by=sort_column, ascending=ascending)
+
+    選択メニュー = st.multiselect("PFCを集計するメニューを選択", df["メニュー名"].tolist())
+    選択df = df[df["メニュー名"].isin(選択メニュー)]
+
+    st.dataframe(df)
+
+    if not 選択df.empty:
+        total_p = 選択df["たんぱく質"].sum()
+        total_f = 選択df["脂質"].sum()
+        total_c = 選択df["炭水化物"].sum()
+
+        st.markdown("### ✅ 選択メニューのPFC合計")
+        st.markdown(f"- たんぱく質：{total_p:.1f} g")
+        st.markdown(f"- 脂質：{total_f:.1f} g")
+        st.markdown(f"- 炭水化物：{total_c:.1f} g")
+
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots()
+        labels = ["たんぱく質", "脂質", "炭水化物"]
+        values = [total_p, total_f, total_c]
+        colors = ["#66b3ff", "#ff9999", "#99ff99"]
+        ax.pie(values, labels=labels, autopct="%1.1f%%", startangle=90, colors=colors)
+        ax.axis("equal")
+        st.pyplot(fig)
+    else:
+        st.info("メニューを選択するとPFC合計と円グラフが表示されます。")
 
 
 
@@ -47,8 +126,7 @@ if not st.session_state["店舗選択済み"]:
 
     # 店舗一覧とよみ・ローマ字辞書を作成
     店舗一覧 = sorted(df["店舗名"].dropna().unique())
-    検索語 = st.text_input("店舗名を入力（ひらがな・カタカナ・漢字・英語対応）", value=st.session_state.get("検索語", ""), key="店舗検索セッション欄").strip().lower()
-    st.session_state["検索語"] = 検索語
+    検索語 = st.text_input("店舗名を入力（ひらがな・カタカナ・漢字・英語対応）", key="店舗検索_入力欄").strip().lower()
 
     候補店舗 = []
     for 店舗 in 店舗一覧:
@@ -122,8 +200,7 @@ if not st.session_state["店舗選択済み"]:
     st.header("🔍 店舗名検索")
 
     店舗一覧 = sorted(df["店舗名"].dropna().unique())
-    検索語 = st.text_input("店舗名を入力（ひらがな・カタカナ・漢字・英語対応）", value=st.session_state.get("検索語", ""), key="店舗検索セッション欄").strip().lower()
-    st.session_state["検索語"] = 検索語
+    検索語 = st.text_input("店舗名を入力（ひらがな・カタカナ・漢字・英語対応）", key="店舗検索_入力欄").strip().lower()
 
     if 検索語:
         候補店舗 = [s for s in 店舗一覧 if 検索語 in s.lower()]
