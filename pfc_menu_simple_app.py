@@ -1,19 +1,3 @@
-import matplotlib.font_manager as fm
-import streamlit as st
-
-fonts = fm.findSystemFonts(fontpaths=None)
-st.write("=== すべてのフォントファイル一覧 ===")
-st.write(fonts)
-import matplotlib.font_manager as fm
-import streamlit as st
-
-# すべてのフォントのファイルパス一覧
-fonts = fm.findSystemFonts(fontpaths=None, fontext='ttf')
-# 日本語っぽい名前だけ表示
-jp_fonts = [f for f in fonts if 'Gothic' in f or 'Hira' in f or 'Noto' in f or 'Yu' in f or 'Osaka' in f]
-st.write("=== Macに入っている日本語フォント ===")
-for f in jp_fonts:
-    st.write(f)
 import streamlit as st
 import pandas as pd
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, JsCode
@@ -21,9 +5,11 @@ import jaconv
 import unidecode
 import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
 
-# ▼ Mac用に日本語フォントを明示
-matplotlib.rcParams['font.family'] = ['Hiragino Sans', 'Yu Gothic', 'IPAexGothic', 'Noto Sans CJK JP', 'Osaka', 'sans-serif']
+# ▼ 必ずあなたの環境に合わせてパスを書き換えてください！
+fontpath = '/Users/あなたのユーザー名/Library/Fonts/NotoSansJP-Regular.otf'  # ここを正しいものに変更
+prop = fm.FontProperties(fname=fontpath)
 
 df = pd.read_csv("menu_data_all_chains.csv")
 if "カロリー" not in df.columns:
@@ -198,11 +184,12 @@ if store:
             startangle=90,
             counterclock=False,
             colors=colors,
-            textprops={'fontsize': 10}
+            textprops={'fontsize': 10, 'fontproperties': prop}
         )
-        ax.set_title("PFCバランス")
+        ax.set_title("PFCバランス", fontproperties=prop)
         for text, color in zip(texts, colors):
             text.set_color(color)
+            text.set_fontproperties(prop)
         plt.tight_layout()
         st.pyplot(fig)
 else:
