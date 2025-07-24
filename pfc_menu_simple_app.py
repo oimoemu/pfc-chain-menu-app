@@ -39,7 +39,7 @@ if not st.session_state["店舗選択済み"]:
 
     # 店舗一覧とよみ・ローマ字辞書を作成
     店舗一覧 = sorted(df["店舗名"].dropna().unique())
-    検索語 = st.text_input("店舗名を入力（ひらがな・カタカナ・漢字・英語対応）").strip().lower()
+    検索語 = st.text_input("店舗名を入力（ひらがな・カタカナ・漢字・英語対応）", key="store_search_input").strip().lower()
 
     候補店舗 = []
     for 店舗 in 店舗一覧:
@@ -113,7 +113,7 @@ if not st.session_state["店舗選択済み"]:
     st.header("🔍 店舗名検索")
 
     店舗一覧 = sorted(df["店舗名"].dropna().unique())
-    検索語 = st.text_input("店舗名を入力（ひらがな・カタカナ・漢字・英語対応）").strip().lower()
+    検索語 = st.text_input("店舗名を入力（ひらがな・カタカナ・漢字・英語対応）", key="store_search_input").strip().lower()
 
     if 検索語:
         候補店舗 = [s for s in 店舗一覧 if 検索語 in s.lower()]
