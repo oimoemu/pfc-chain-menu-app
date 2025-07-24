@@ -21,6 +21,14 @@ if not all(col in df.columns for col in ["店舗よみ", "店舗カナ", "店舗
 
 st.set_page_config(page_title="PFCチェーンメニュー", layout="wide")
 
+if "店舗選択済み" not in st.session_state:
+    st.session_state["店舗選択済み"] = False
+    st.session_state["選択店舗"] = ""
+if "検索語" not in st.session_state:
+    st.session_state["検索語"] = ""
+
+
+
 import jaconv
 from unidecode import unidecode
 
@@ -39,7 +47,8 @@ if not st.session_state["店舗選択済み"]:
 
     # 店舗一覧とよみ・ローマ字辞書を作成
     店舗一覧 = sorted(df["店舗名"].dropna().unique())
-    検索語 = st.text_input("店舗名を入力（ひらがな・カタカナ・漢字・英語対応）", key="店舗検索_入力欄").strip().lower()
+    検索語 = st.text_input("店舗名を入力（ひらがな・カタカナ・漢字・英語対応）", value=st.session_state.get("検索語", ""), key="店舗検索セッション欄").strip().lower()
+    st.session_state["検索語"] = 検索語
 
     候補店舗 = []
     for 店舗 in 店舗一覧:
@@ -113,7 +122,8 @@ if not st.session_state["店舗選択済み"]:
     st.header("🔍 店舗名検索")
 
     店舗一覧 = sorted(df["店舗名"].dropna().unique())
-    検索語 = st.text_input("店舗名を入力（ひらがな・カタカナ・漢字・英語対応）", key="店舗検索_入力欄").strip().lower()
+    検索語 = st.text_input("店舗名を入力（ひらがな・カタカナ・漢字・英語対応）", value=st.session_state.get("検索語", ""), key="店舗検索セッション欄").strip().lower()
+    st.session_state["検索語"] = 検索語
 
     if 検索語:
         候補店舗 = [s for s in 店舗一覧 if 検索語 in s.lower()]
