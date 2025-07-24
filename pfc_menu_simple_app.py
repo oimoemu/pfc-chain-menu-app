@@ -21,13 +21,13 @@ if not all(col in df.columns for col in ["店舗よみ", "店舗カナ", "店舗
 
 st.set_page_config(page_title="PFCチェーンメニュー", layout="wide")
 
-# チェーン店を選択
-店舗一覧 = sorted(df["チェーン名"].dropna().unique())
-選択店舗 = st.selectbox("チェーン店を選んでください", ["すべて"] + 店舗一覧)
+# 店舗名を選択
+店舗一覧 = sorted(df["店舗名"].dropna().unique())
+選択店舗 = st.selectbox("店舗名を選んでください", ["すべて"] + 店舗一覧)
 
 # 店舗に応じたフィルター
 if 選択店舗 != "すべて":
-    df = df[df["チェーン名"] == 選択店舗]
+    df = df[df["店舗名"] == 選択店舗]
 
 # カテゴリ選択（店舗フィルター後に動的に変わる）
 カテゴリ一覧 = sorted(df["カテゴリ"].dropna().unique())
