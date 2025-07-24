@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, JsCode
@@ -95,7 +96,11 @@ if store:
                 'font-size': size,
                 'font-weight': 'bold',
                 'white-space': 'pre-wrap',
-                'line-height': '1.1'
+                'line-height': '18px',
+                'min-height': '38px',
+                'max-height': '38px',
+                'display': 'flex',
+                'align-items': 'center'
             }
         }
     """)
@@ -162,3 +167,4 @@ if store:
         st.pyplot(fig)
 else:
     st.info("店舗名を入力してください（ひらがな・カタカナ・英語もOK）")
+        
