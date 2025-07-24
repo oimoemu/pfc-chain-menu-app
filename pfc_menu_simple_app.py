@@ -3,7 +3,11 @@ import pandas as pd
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, JsCode
 import jaconv
 import unidecode
+import matplotlib
 import matplotlib.pyplot as plt
+
+# 日本語フォントを明示指定（ローカルならIPAexGothic, CloudならNoto Sans CJK JPなど）
+matplotlib.rcParams['font.family'] = 'IPAexGothic'
 
 df = pd.read_csv("menu_data_all_chains.csv")
 if "カロリー" not in df.columns:
