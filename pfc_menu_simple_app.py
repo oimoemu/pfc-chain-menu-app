@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, JsCode
@@ -58,7 +57,18 @@ store = st.session_state.get("selected_store", None)
 
 if store:
     st.success(f"選択店舗：{store}")
-    filtered_df = df[df["店舗名"] == store]
+    store_df = df[df["店舗名"] == store]
+
+    # ★カテゴリ選択
+    category_options = store_df["カテゴリ"].dropna().unique().tolist()
+    category = st.selectbox("カテゴリを選択してください", ["（全て表示）"] + category_options)
+
+    # ★カテゴリでフィルタ
+    if category == "（全て表示）":
+        filtered_df = store_df.copy()
+    else:
+        filtered_df = store_df[store_df["カテゴリ"] == category]
+
     keyword = st.text_input("メニュー名で絞り込み（例：チーズ/カレーなど）")
     if keyword:
         filtered_df = filtered_df[filtered_df["メニュー名"].str.contains(keyword, case=False)]
@@ -152,4 +162,3 @@ if store:
         st.pyplot(fig)
 else:
     st.info("店舗名を入力してください（ひらがな・カタカナ・英語もOK）")
-        
