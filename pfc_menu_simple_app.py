@@ -1,3 +1,13 @@
+import matplotlib.font_manager as fm
+import streamlit as st
+
+# すべてのフォントのファイルパス一覧
+fonts = fm.findSystemFonts(fontpaths=None, fontext='ttf')
+# 日本語っぽい名前だけ表示
+jp_fonts = [f for f in fonts if 'Gothic' in f or 'Hira' in f or 'Noto' in f or 'Yu' in f or 'Osaka' in f]
+st.write("=== Macに入っている日本語フォント ===")
+for f in jp_fonts:
+    st.write(f)
 import streamlit as st
 import pandas as pd
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, JsCode
