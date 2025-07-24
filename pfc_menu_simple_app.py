@@ -55,7 +55,7 @@ if st.session_state["ページ"] == "店舗検索":
         st.info("該当する店舗が見つかりません")
     else:
         選択店舗 = st.selectbox("該当する店舗を選んでください", 候補店舗, key="店舗候補選択")
-        if st.button("この店舗を選ぶ", key="select_store_button"):
+        if st.button("この店舗を選ぶ", key="select_store_button_search"):
             st.session_state["選択店舗"] = 選択店舗
             st.session_state["ページ"] = "メニュー表示"
             st.experimental_rerun()
@@ -139,7 +139,7 @@ if not st.session_state["店舗選択済み"]:
 
     選択店舗 = st.selectbox("該当する店舗を選んでください", 候補店舗)
 
-    if st.button("この店舗を選ぶ", key="select_store_button"):
+    if st.button("この店舗を選ぶ", key="select_store_button_search"):
         st.session_state["店舗選択済み"] = True
         st.session_state["選択店舗"] = 選択店舗
         st.experimental_rerun()
@@ -209,7 +209,7 @@ if not st.session_state["店舗選択済み"]:
 
     選択店舗 = st.selectbox("該当する店舗を選んでください", 候補店舗)
 
-    if st.button("この店舗を選ぶ", key="select_store_button"):
+    if st.button("この店舗を選ぶ", key="select_store_button_search"):
         st.session_state["店舗選択済み"] = True
         st.session_state["選択店舗"] = 選択店舗
         st.experimental_rerun()
