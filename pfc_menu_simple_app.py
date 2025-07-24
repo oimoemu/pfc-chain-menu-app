@@ -81,7 +81,9 @@ if store:
     filtered_df = filtered_df.reset_index(drop=True)
     filtered_df["row_id"] = filtered_df.index.astype(str)
 
-    cols = [col for col in filtered_df.columns if col not in ["店舗名", "店舗よみ", "店舗カナ", "店舗ローマ字", "row_id"]]
+    # ★「カテゴリ」カラムを除外
+    cols = [col for col in filtered_df.columns if col not in ["店舗名", "店舗よみ", "店舗カナ", "店舗ローマ字", "row_id", "カテゴリ"]]
+
     menu_cell_style_jscode = JsCode("""
         function(params) {
             let text = params.value || '';
@@ -123,7 +125,7 @@ if store:
     prev_selected_ids = st.session_state[selected_key]
 
     gb = GridOptionsBuilder.from_dataframe(filtered_df[cols + ["row_id"]])
-    gb.configure_selection('multiple', use_checkbox=True)
+    gb.configure_selection('multiple', use_checkbox=True)  # ← チェックボックスが一番左
     gb.configure_column("メニュー名", cellStyle=menu_cell_style_jscode, width=200, minWidth=200, maxWidth=260, pinned="left", resizable=False)
     for col in cols:
         if col != "メニュー名":
