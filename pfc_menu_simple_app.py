@@ -32,6 +32,16 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
+
+# カテゴリフィルター追加
+カテゴリ一覧 = sorted(df["カテゴリ"].dropna().unique())
+選択カテゴリ = st.selectbox("カテゴリを選んでください", ["すべて"] + カテゴリ一覧)
+
+# カテゴリに応じてフィルター処理
+if 選択カテゴリ != "すべて":
+    df = df[df["カテゴリ"] == 選択カテゴリ]
+
+
 store_input = st.text_input("店舗名を入力（ひらがな・カタカナ・英語・一部でも可）", value="", key="store_search")
 candidates = []
 if len(store_input) > 0:
