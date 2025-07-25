@@ -71,7 +71,6 @@ if store:
     st.success(f"選択店舗：{store}")
     store_df = df[df["店舗名"] == store]
 
-    # ★カテゴリ選択
     category_options = store_df["カテゴリ"].dropna().unique().tolist()
     category = st.selectbox("カテゴリを選択してください", ["（全て表示）"] + category_options)
 
@@ -131,11 +130,10 @@ if store:
     if selected_key not in st.session_state:
         st.session_state[selected_key] = []
 
-    # --- pre_selected_rowsは使わない！ ---
     gb = GridOptionsBuilder.from_dataframe(filtered_df[display_cols + ["row_id"]])
     gb.configure_selection('multiple', use_checkbox=True)
     gb.configure_column("row_id", hide=True)
-    gb.configure_column("メニュー名", cellStyle=menu_cell_style_jscode, width=200, minWidth=180, maxWidth=280, resizable=False, checkboxSelection=True)
+    gb.configure_column("メニュー名", cellStyle=menu_cell_style_jscode, width=200, minWidth=180, maxWidth=280, resizable=False, checkboxSelection=True)  # ← pinnedを外している！
     for col in display_cols:
         if col != "メニュー名":
             gb.configure_column(col, width=36, minWidth=20, maxWidth=60, resizable=False, cellStyle=cell_style_jscode)
@@ -145,7 +143,6 @@ if store:
     grid_options['getRowNodeId'] = JsCode("function(data){ return data['row_id']; }")
     grid_options['rowSelection'] = "multiple"
 
-    # pre_selected_rowsは**渡さない**！
     grid_response = AgGrid(
         filtered_df[display_cols + ["row_id"]],
         gridOptions=grid_options,
@@ -166,7 +163,6 @@ if store:
             f"- 炭水化物: **{total['炭水化物 (g)']:.1f}g**"
         )
 
-        # PFC円グラフ
         pfc_vals = [total["たんぱく質 (g)"], total["脂質 (g)"], total["炭水化物 (g)"]]
         pfc_labels = ["たんぱく質", "脂質", "炭水化物"]
         colors = ["#4e79a7", "#f28e2b", "#e15759"]
