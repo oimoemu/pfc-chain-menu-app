@@ -29,12 +29,18 @@ if not all(col in df.columns for col in ["店舗よみ", "店舗カナ", "店舗
 st.set_page_config(page_title="PFCチェーンメニュー", layout="wide")
 st.title("PFCチェーンメニュー検索")
 
+# --- カスタムCSSで行の高さと折り返しを完全固定 ---
 st.markdown("""
     <style>
     .ag-header-cell-label {
         font-size: 0.8em !important;
         padding-top: 0px !important;
         padding-bottom: 0px !important;
+    }
+    .ag-row {
+        height: 48px !important;
+        min-height: 48px !important;
+        max-height: 48px !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -106,13 +112,11 @@ if store:
                 'font-size': size,
                 'font-weight': 'bold',
                 'white-space': 'pre-wrap',
-                'line-height': '16px',
-                'height': '36px',
-                'maxHeight': '36px',
-                'minHeight': '36px',
+                'line-height': '22px',
+                'minHeight': '48px',
+                'maxHeight': '48px',
                 'display': 'flex',
-                'align-items': 'center',
-                'overflow': 'hidden'
+                'align-items': 'center'
             }
         }
     """)
@@ -139,9 +143,9 @@ if store:
     for col in cols:
         if col != "メニュー名":
             gb.configure_column(col, width=36, minWidth=20, maxWidth=60, resizable=False, cellStyle=cell_style_jscode)
-    gb.configure_column("row_id", hide=True)
 
     grid_options = gb.build()
+    grid_options['rowHeight'] = 48
     grid_options['getRowNodeId'] = JsCode("function(data){ return data['row_id']; }")
 
     grid_response = AgGrid(
@@ -149,7 +153,7 @@ if store:
         gridOptions=grid_options,
         update_mode=GridUpdateMode.SELECTION_CHANGED,
         fit_columns_on_grid_load=False,
-        height=430,
+        height=440,
         allow_unsafe_jscode=True,
         pre_selected_rows=prev_selected_ids
     )
