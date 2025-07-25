@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 import os
 
-# ▼ クラウド・ローカル共用：リポジトリ内のfontsフォルダの日本語フォントを使う
 fontpath = "fonts/NotoSansJP-Regular.ttf"
 if not os.path.isfile(fontpath):
     st.error(f"指定フォントが見つかりません: {fontpath}")
@@ -29,7 +28,6 @@ if not all(col in df.columns for col in ["店舗よみ", "店舗カナ", "店舗
 st.set_page_config(page_title="PFCチェーンメニュー", layout="wide")
 st.title("PFCチェーンメニュー検索")
 
-# --- カスタムCSSで行の高さと折り返しを完全固定 ---
 st.markdown("""
     <style>
     .ag-header-cell-label {
@@ -77,7 +75,6 @@ if store:
     category_options = store_df["カテゴリ"].dropna().unique().tolist()
     category = st.selectbox("カテゴリを選択してください", ["（全て表示）"] + category_options)
 
-    # ★カテゴリでフィルタ
     if category == "（全て表示）":
         filtered_df = store_df.copy()
     else:
@@ -98,11 +95,9 @@ if store:
     filtered_df = filtered_df.reset_index(drop=True)
     filtered_df["row_id"] = filtered_df.index.astype(str)
 
-    # ★不要カラム除外
     cols = [col for col in filtered_df.columns if col not in ["店舗名", "店舗よみ", "店舗カナ", "店舗ローマ字", "row_id", "カテゴリ"]]
     display_cols = ["メニュー名"] + [col for col in cols if col != "メニュー名"]
 
-    # --- メニュー名：高さ固定＋折り返し＋文字縮小 ---
     menu_cell_style_jscode = JsCode("""
         function(params) {
             let text = params.value || '';
@@ -136,12 +131,11 @@ if store:
     if selected_key not in st.session_state:
         st.session_state[selected_key] = []
 
-    prev_selected_ids = st.session_state[selected_key]
-
+    # --- pre_selected_rowsは使わない！ ---
     gb = GridOptionsBuilder.from_dataframe(filtered_df[display_cols + ["row_id"]])
     gb.configure_selection('multiple', use_checkbox=True)
     gb.configure_column("row_id", hide=True)
-    gb.configure_column("メニュー名", cellStyle=menu_cell_style_jscode, width=200, minWidth=180, maxWidth=280, pinned="left", resizable=False, checkboxSelection=True)  # ←ここ重要！
+    gb.configure_column("メニュー名", cellStyle=menu_cell_style_jscode, width=200, minWidth=180, maxWidth=280, resizable=False, checkboxSelection=True)
     for col in display_cols:
         if col != "メニュー名":
             gb.configure_column(col, width=36, minWidth=20, maxWidth=60, resizable=False, cellStyle=cell_style_jscode)
@@ -149,20 +143,18 @@ if store:
     grid_options = gb.build()
     grid_options['rowHeight'] = 48
     grid_options['getRowNodeId'] = JsCode("function(data){ return data['row_id']; }")
-    grid_options['rowSelection'] = "multiple"  # ←必ず明示
+    grid_options['rowSelection'] = "multiple"
 
+    # pre_selected_rowsは**渡さない**！
     grid_response = AgGrid(
         filtered_df[display_cols + ["row_id"]],
         gridOptions=grid_options,
         update_mode=GridUpdateMode.SELECTION_CHANGED,
         fit_columns_on_grid_load=False,
         height=440,
-        allow_unsafe_jscode=True,
-        reload_data=True  # 安定しない場合はこれも有効
+        allow_unsafe_jscode=True
     )
     selected_rows = grid_response["selected_rows"]
-    if selected_rows is not None:
-        st.session_state[selected_key] = [row.get("row_id") for row in selected_rows if isinstance(row, dict) and row.get("row_id") is not None]
     if selected_rows is not None and len(selected_rows) > 0:
         selected_df = pd.DataFrame(selected_rows)
         total = selected_df[["カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"]].sum()
