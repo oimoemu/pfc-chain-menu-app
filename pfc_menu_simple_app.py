@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 import os
 
-# ▼ Mac用：日本語フォントをフルパスで指定
-fontpath = '/Users/moritahiroki/Library/Fonts/NotoSansCJK.ttc'
+# ▼ クラウド対応：リポジトリ内のfontsフォルダのフォントを使う
+fontpath = "fonts/NotoSansJP-Regular.ttf"
 if not os.path.isfile(fontpath):
     st.error(f"指定フォントが見つかりません: {fontpath}")
 prop = fm.FontProperties(fname=fontpath)
@@ -83,20 +83,16 @@ if store:
         filtered_df = filtered_df[filtered_df["メニュー名"].str.contains(keyword, case=False)]
     sort_by = st.radio("並び替え基準", ["カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"], horizontal=True)
     ascending = st.radio("並び順", ["昇順", "降順"], horizontal=True) == "昇順"
-    # KeyError完全防止
     if sort_by in filtered_df.columns and not filtered_df.empty:
         filtered_df = filtered_df.sort_values(by=sort_by, ascending=ascending)
 
-    # データ0件時の案内＆停止
     if filtered_df.empty:
         st.info("選択された条件ではメニューが見つかりません。")
         st.stop()
     
-    # row_id列追加（indexでOK）
     filtered_df = filtered_df.reset_index(drop=True)
     filtered_df["row_id"] = filtered_df.index.astype(str)
 
-    # ★「カテゴリ」カラムを除外
     cols = [col for col in filtered_df.columns if col not in ["店舗名", "店舗よみ", "店舗カナ", "店舗ローマ字", "row_id", "カテゴリ"]]
 
     menu_cell_style_jscode = JsCode("""
@@ -132,7 +128,6 @@ if store:
         }
     """)
     
-    # --- 選択状態をrow_idで管理 ---
     selected_key = "selected_row_ids"
     if selected_key not in st.session_state:
         st.session_state[selected_key] = []
@@ -147,7 +142,6 @@ if store:
             gb.configure_column(col, width=36, minWidth=20, maxWidth=60, resizable=False, cellStyle=cell_style_jscode)
     gb.configure_column("row_id", hide=True)
 
-    # 行IDをrow_idに（getRowNodeId）
     grid_options = gb.build()
     grid_options['getRowNodeId'] = JsCode("function(data){ return data['row_id']; }")
 
@@ -174,7 +168,6 @@ if store:
             f"- 炭水化物: **{total['炭水化物 (g)']:.1f}g**"
         )
 
-        # ★ここからPFCバランス円グラフ
         pfc_vals = [total["たんぱく質 (g)"], total["脂質 (g)"], total["炭水化物 (g)"]]
         pfc_labels = ["たんぱく質", "脂質", "炭水化物"]
         colors = ["#4e79a7", "#f28e2b", "#e15759"]
