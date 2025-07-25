@@ -101,6 +101,8 @@ if store:
     # ★不要カラム除外
     cols = [col for col in filtered_df.columns if col not in ["店舗名", "店舗よみ", "店舗カナ", "店舗ローマ字", "row_id", "カテゴリ"]]
 
+    display_cols = ["メニュー名"] + [col for col in cols if col != "メニュー名"]
+
     # --- メニュー名：高さ固定＋折り返し＋文字縮小 ---
     menu_cell_style_jscode = JsCode("""
         function(params) {
@@ -137,10 +139,11 @@ if store:
 
     prev_selected_ids = st.session_state[selected_key]
 
-    gb = GridOptionsBuilder.from_dataframe(filtered_df[cols + ["row_id"]])
+    gb = GridOptionsBuilder.from_dataframe(filtered_df[display_cols + ["row_id"]])
     gb.configure_selection('multiple', use_checkbox=True)
+    gb.configure_column("row_id", hide=True)  # row_idは完全非表示に
     gb.configure_column("メニュー名", cellStyle=menu_cell_style_jscode, width=200, minWidth=180, maxWidth=280, pinned="left", resizable=False)
-    for col in cols:
+    for col in display_cols:
         if col != "メニュー名":
             gb.configure_column(col, width=36, minWidth=20, maxWidth=60, resizable=False, cellStyle=cell_style_jscode)
 
@@ -149,7 +152,7 @@ if store:
     grid_options['getRowNodeId'] = JsCode("function(data){ return data['row_id']; }")
 
     grid_response = AgGrid(
-        filtered_df[cols + ["row_id"]],
+        filtered_df[display_cols + ["row_id"]],  # row_idは管理用のみ
         gridOptions=grid_options,
         update_mode=GridUpdateMode.SELECTION_CHANGED,
         fit_columns_on_grid_load=False,
