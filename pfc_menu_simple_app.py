@@ -6,9 +6,12 @@ import unidecode
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
+import os
 
-# ▼ Macで日本語ラベルを必ず表示できる設定
+# ▼ Mac用：日本語フォントをフルパスで指定
 fontpath = '/Users/moritahiroki/Library/Fonts/NotoSansCJK.ttc'
+if not os.path.isfile(fontpath):
+    st.error(f"指定フォントが見つかりません: {fontpath}")
 prop = fm.FontProperties(fname=fontpath)
 
 df = pd.read_csv("menu_data_all_chains.csv")
