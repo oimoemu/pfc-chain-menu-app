@@ -7,8 +7,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 
-# ▼ 必ずあなたの環境に合わせてパスを書き換えてください！
-fontpath = '/Users/あなたのユーザー名/Library/Fonts/NotoSansJP-Regular.otf'  # ここを正しいものに変更
+# ▼ Macで日本語ラベルを必ず表示できる設定
+fontpath = '/Users/moritahiroki/Library/Fonts/NotoSansCJK.ttc'
 prop = fm.FontProperties(fname=fontpath)
 
 df = pd.read_csv("menu_data_all_chains.csv")
@@ -18,7 +18,7 @@ if "カロリー" not in df.columns:
 def get_yomi(text):
     hira = jaconv.kata2hira(jaconv.z2h(str(text), kana=True, digit=False, ascii=False))
     kata = jaconv.hira2kata(hira)
-    roma = unidecode.unidecode(text)  # ローマ字化
+    roma = unidecode.unidecode(text)
     return hira, kata, roma.lower()
 
 if not all(col in df.columns for col in ["店舗よみ", "店舗カナ", "店舗ローマ字"]):
@@ -137,7 +137,7 @@ if store:
     prev_selected_ids = st.session_state[selected_key]
 
     gb = GridOptionsBuilder.from_dataframe(filtered_df[cols + ["row_id"]])
-    gb.configure_selection('multiple', use_checkbox=True)  # ← チェックボックスが一番左
+    gb.configure_selection('multiple', use_checkbox=True)
     gb.configure_column("メニュー名", cellStyle=menu_cell_style_jscode, width=200, minWidth=200, maxWidth=260, pinned="left", resizable=False)
     for col in cols:
         if col != "メニュー名":
@@ -158,7 +158,6 @@ if store:
         pre_selected_rows=prev_selected_ids
     )
     selected_rows = grid_response["selected_rows"]
-    # 選択row_idをセッションに保存
     if selected_rows is not None:
         st.session_state[selected_key] = [row.get("row_id") for row in selected_rows if isinstance(row, dict) and row.get("row_id") is not None]
     if selected_rows is not None and len(selected_rows) > 0:
