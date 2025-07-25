@@ -1,8 +1,6 @@
 streamlit
 pandas
-plotly
-streamlit-aggrid
-jaconv
-Unidecode
 matplotlib
-st-aggrid
+jaconv
+unidecode
+streamlit-aggrid==0.3.4.post3
