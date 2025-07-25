@@ -3,12 +3,11 @@ import pandas as pd
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, JsCode
 import jaconv
 import unidecode
-import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 import os
 
-# ▼ クラウド対応：リポジトリ内のfontsフォルダのフォントを使う
+# ▼ クラウド・ローカル共用：リポジトリ内のfontsフォルダの日本語フォントを使う
 fontpath = "fonts/NotoSansJP-Regular.ttf"
 if not os.path.isfile(fontpath):
     st.error(f"指定フォントが見つかりません: {fontpath}")
@@ -93,27 +92,27 @@ if store:
     filtered_df = filtered_df.reset_index(drop=True)
     filtered_df["row_id"] = filtered_df.index.astype(str)
 
+    # ★不要カラム除外
     cols = [col for col in filtered_df.columns if col not in ["店舗名", "店舗よみ", "店舗カナ", "店舗ローマ字", "row_id", "カテゴリ"]]
 
+    # --- メニュー名：高さ固定＋折り返し＋文字縮小 ---
     menu_cell_style_jscode = JsCode("""
         function(params) {
             let text = params.value || '';
             let size = '0.95em';
-            if (text.length > 16) {
-                size = '0.8em';
-            }
-            if (text.length > 32) {
-                size = '0.7em';
-            }
+            if (text.length > 14) { size = '0.85em'; }
+            if (text.length > 22) { size = '0.75em'; }
             return {
                 'font-size': size,
                 'font-weight': 'bold',
                 'white-space': 'pre-wrap',
-                'line-height': '18px',
-                'min-height': '38px',
-                'max-height': '38px',
+                'line-height': '16px',
+                'height': '36px',
+                'maxHeight': '36px',
+                'minHeight': '36px',
                 'display': 'flex',
-                'align-items': 'center'
+                'align-items': 'center',
+                'overflow': 'hidden'
             }
         }
     """)
@@ -136,7 +135,7 @@ if store:
 
     gb = GridOptionsBuilder.from_dataframe(filtered_df[cols + ["row_id"]])
     gb.configure_selection('multiple', use_checkbox=True)
-    gb.configure_column("メニュー名", cellStyle=menu_cell_style_jscode, width=200, minWidth=200, maxWidth=260, pinned="left", resizable=False)
+    gb.configure_column("メニュー名", cellStyle=menu_cell_style_jscode, width=200, minWidth=180, maxWidth=280, pinned="left", resizable=False)
     for col in cols:
         if col != "メニュー名":
             gb.configure_column(col, width=36, minWidth=20, maxWidth=60, resizable=False, cellStyle=cell_style_jscode)
@@ -168,6 +167,7 @@ if store:
             f"- 炭水化物: **{total['炭水化物 (g)']:.1f}g**"
         )
 
+        # PFC円グラフ
         pfc_vals = [total["たんぱく質 (g)"], total["脂質 (g)"], total["炭水化物 (g)"]]
         pfc_labels = ["たんぱく質", "脂質", "炭水化物"]
         colors = ["#4e79a7", "#f28e2b", "#e15759"]
