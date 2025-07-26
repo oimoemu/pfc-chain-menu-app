@@ -27,41 +27,44 @@ if not all(col in df.columns for col in ["店舗よみ", "店舗カナ", "店舗
 st.set_page_config(page_title="PFCチェーンメニュー", layout="wide")
 st.title("PFCチェーンメニュー検索")
 
-# CSSで列幅＋フォントサイズ＋折り返しを強制
+# より厳格な幅・折り返し・小フォント強制CSS
 st.markdown("""
 <style>
-/* 選択列（1列目） */
-[data-testid="stDataFrame"] table td:nth-child(1),
-[data-testid="stDataFrame"] table th:nth-child(1) {
-    max-width: 70px !important;
-    min-width: 70px !important;
-    width: 70px !important;
-    font-size: 11px !important;
-    text-align: center !important;
-}
-/* メニュー名列（2列目） */
-[data-testid="stDataFrame"] table td:nth-child(2),
-[data-testid="stDataFrame"] table th:nth-child(2) {
-    max-width: 210px !important;
-    min-width: 210px !important;
-    width: 210px !important;
+/* st.data_editor テーブル全体に強制適用 */
+.st-emotion-cache-13ejsyy, .st-emotion-cache-1v0mbdj, .st-emotion-cache-1uyte9r, .st-emotion-cache-1b6u7k6, .st-emotion-cache-1d391kg, .st-emotion-cache-1hnxtu8,
+.st-emotion-cache-1gulkj5, .st-emotion-cache-13bivft, .stDataFrame tbody, .stDataFrame thead, .stDataFrame tr, .stDataFrame th, .stDataFrame td {
+    font-size: 10px !important;
+    line-height: 1.15 !important;
     white-space: pre-wrap !important;
     word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+}
+/* 選択列（1列目） */
+.stDataFrame th:nth-child(1), .stDataFrame td:nth-child(1) {
+    min-width: 50px !important;
+    max-width: 50px !important;
+    width: 50px !important;
+    text-align: center !important;
     font-size: 10px !important;
+}
+/* メニュー名列（2列目） */
+.stDataFrame th:nth-child(2), .stDataFrame td:nth-child(2) {
+    min-width: 180px !important;
+    max-width: 210px !important;
+    width: 210px !important;
+    font-size: 10px !important;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
 }
 /* PFC列（3列目以降） */
-[data-testid="stDataFrame"] table td:nth-child(n+3),
-[data-testid="stDataFrame"] table th:nth-child(n+3) {
-    max-width: 100px !important;
+.stDataFrame th:nth-child(n+3), .stDataFrame td:nth-child(n+3) {
     min-width: 60px !important;
-    width: 85px !important;
+    max-width: 90px !important;
+    width: 80px !important;
     font-size: 10px !important;
     text-align: right !important;
-}
-/* 全体フォント */
-[data-testid="stDataFrame"] table, [data-testid="stDataFrame"] th, [data-testid="stDataFrame"] td {
-    font-size: 10px !important;
-    line-height: 1.12 !important;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -114,12 +117,10 @@ if store:
         st.info("選択された条件ではメニューが見つかりません。")
         st.stop()
 
-    # 表示用DataFrameの列順指定
     pfc_cols = [col for col in ["カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"] if col in filtered_df.columns]
     df_show = filtered_df[["メニュー名"] + pfc_cols].copy()
     df_show.insert(0, "選択", False)
 
-    # カラム幅と型のカスタム
     col_cfg = {
         "選択": st.column_config.CheckboxColumn(label="選択", width="small"),
         "メニュー名": st.column_config.TextColumn(label="メニュー名", width="medium"),
