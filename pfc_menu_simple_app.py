@@ -6,13 +6,11 @@ import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 import os
 
-# フォント設定
 fontpath = "fonts/NotoSansJP-Regular.ttf"
 if not os.path.isfile(fontpath):
     st.error(f"指定フォントが見つかりません: {fontpath}")
 prop = fm.FontProperties(fname=fontpath)
 
-# CSV読込
 df = pd.read_csv("menu_data_all_chains.csv")
 if "カロリー" not in df.columns:
     df["カロリー"] = 0
@@ -29,7 +27,30 @@ if not all(col in df.columns for col in ["店舗よみ", "店舗カナ", "店舗
 st.set_page_config(page_title="PFCチェーンメニュー", layout="wide")
 st.title("PFCチェーンメニュー検索")
 
-# 店舗検索
+# カスタムCSS
+st.markdown("""
+<style>
+.menu-cell {
+    max-width: 180px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 1em;
+    line-height: 1.2em;
+    min-height: 32px;
+    max-height: 48px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+}
+.menu-cell.small {
+    font-size: 0.8em !important;
+}
+.menu-cell.xsmall {
+    font-size: 0.65em !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 store_input = st.text_input("店舗名を入力（ひらがな・カタカナ・英語・一部でも可）", value="", key="store_search")
 candidates = []
 if len(store_input) > 0:
@@ -78,20 +99,37 @@ if store:
         st.info("選択された条件ではメニューが見つかりません。")
         st.stop()
 
-    # 表示用DataFrame
-    show_cols = []
-    for col in ["メニュー名", "カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"]:
-        if col in filtered_df.columns:
-            show_cols.append(col)
-    df_show = filtered_df[show_cols].copy()
-    df_show["選択"] = False
+    # 列順・サイズ指定
+    pfc_cols = [col for col in ["カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"] if col in filtered_df.columns]
+    df_show = filtered_df[["メニュー名"] + pfc_cols].copy()
+    df_show.insert(0, "選択", False)
 
-    # data_editorでチェックボックス付き表を表示
+    # メニュー名列を長さに応じて自動フォントサイズ縮小・折り返し
+    def render_menu_name(name):
+        if len(str(name)) > 25:
+            return f'<div class="menu-cell xsmall">{str(name)}</div>'
+        elif len(str(name)) > 14:
+            return f'<div class="menu-cell small">{str(name)}</div>'
+        else:
+            return f'<div class="menu-cell">{str(name)}</div>'
+
+    df_show["メニュー名"] = df_show["メニュー名"].apply(render_menu_name)
+
+    # 列幅指定
+    col_cfg = {
+        "選択": st.column_config.CheckboxColumn(label="選択", width="small"),
+        "メニュー名": st.column_config.MarkdownColumn(label="メニュー名", width="medium"),
+    }
+    for pfc in pfc_cols:
+        col_cfg[pfc] = st.column_config.NumberColumn(label=pfc, width="small")
+
+    # データエディタで表示
     edited = st.data_editor(
         df_show,
         use_container_width=True,
         hide_index=True,
-        column_config={"選択": st.column_config.CheckboxColumn(label="選択")}
+        column_config=col_cfg,
+        height=540
     )
 
     # 選択された行のみ抽出
@@ -100,15 +138,19 @@ if store:
 
     # 合計と円グラフ
     if not selected.empty:
-        total = selected[["カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"]].sum()
+        total = selected[pfc_cols].sum()
         st.write("### 選択メニューの合計")
-        st.write(f"カロリー: {total['カロリー']:.0f}kcal")
-        st.write(f"たんぱく質: {total['たんぱく質 (g)']:.1f}g")
-        st.write(f"脂質: {total['脂質 (g)']:.1f}g")
-        st.write(f"炭水化物: {total['炭水化物 (g)']:.1f}g")
+        if "カロリー" in total: st.write(f"カロリー: {total['カロリー']:.0f}kcal")
+        if "たんぱく質 (g)" in total: st.write(f"たんぱく質: {total['たんぱく質 (g)']:.1f}g")
+        if "脂質 (g)" in total: st.write(f"脂質: {total['脂質 (g)']:.1f}g")
+        if "炭水化物 (g)" in total: st.write(f"炭水化物: {total['炭水化物 (g)']:.1f}g")
 
         # PFCバランス円グラフ
-        pfc_vals = [total["たんぱく質 (g)"], total["脂質 (g)"], total["炭水化物 (g)"]]
+        pfc_vals = [
+            total.get("たんぱく質 (g)", 0),
+            total.get("脂質 (g)", 0),
+            total.get("炭水化物 (g)", 0)
+        ]
         pfc_labels = ["たんぱく質", "脂質", "炭水化物"]
         colors = ["#4e79a7", "#f28e2b", "#e15759"]
         fig, ax = plt.subplots()
