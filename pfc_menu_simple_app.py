@@ -94,9 +94,11 @@ if store:
     filtered_df = filtered_df.reset_index(drop=True)
     filtered_df["row_id"] = filtered_df.index.astype(str)
 
-    # --------- チェックボックス列を追加 ----------
+    # --------- チェックボックス列の型を明示 ----------
     if "選択" not in filtered_df.columns:
-        filtered_df.insert(0, "選択", False)
+        filtered_df.insert(0, "選択", pd.Series([False]*len(filtered_df), dtype="bool"))
+    else:
+        filtered_df["選択"] = filtered_df["選択"].astype("bool")
 
     # 表示列
     cols = [col for col in filtered_df.columns if col not in ["店舗名", "店舗よみ", "店舗カナ", "店舗ローマ字", "row_id", "カテゴリ"]]
@@ -132,7 +134,6 @@ if store:
     """)
 
     gb = GridOptionsBuilder.from_dataframe(filtered_df[display_cols + ["row_id"]])
-    # 「選択」列はeditableでチェックボックスになる(cellEditor明示)
     gb.configure_column("選択", editable=True, type=["boolean"], cellEditor="agCheckboxCellEditor", width=48)
     gb.configure_column("row_id", hide=True)
     gb.configure_column("メニュー名", cellStyle=menu_cell_style_jscode, width=200, minWidth=180, maxWidth=280, resizable=False)
