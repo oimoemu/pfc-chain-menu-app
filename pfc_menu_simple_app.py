@@ -27,6 +27,22 @@ if not all(col in df.columns for col in ["店舗よみ", "店舗カナ", "店舗
 st.set_page_config(page_title="PFCチェーンメニュー", layout="wide")
 st.title("PFCチェーンメニュー検索")
 
+# メニュー名カスタムCSSで小フォント＋折り返し
+st.markdown("""
+<style>
+.st-emotion-cache-13ejsyy {
+    font-size: 12px !important;
+    white-space: pre-wrap !important;
+    word-break: break-all !important;
+    line-height: 1.2 !important;
+}
+th, td {
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 store_input = st.text_input("店舗名を入力（ひらがな・カタカナ・英語・一部でも可）", value="", key="store_search")
 candidates = []
 if len(store_input) > 0:
@@ -75,20 +91,19 @@ if store:
         st.info("選択された条件ではメニューが見つかりません。")
         st.stop()
 
-    # 列順・サイズ指定
+    # 表示用DataFrameの列順指定
     pfc_cols = [col for col in ["カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"] if col in filtered_df.columns]
     df_show = filtered_df[["メニュー名"] + pfc_cols].copy()
     df_show.insert(0, "選択", False)
 
-    # 列幅・型指定
+    # カラム幅と型のカスタム
     col_cfg = {
-        "選択": st.column_config.CheckboxColumn(label="選択", width="small"),
-        "メニュー名": st.column_config.TextColumn(label="メニュー名", width="medium"),
+        "選択": st.column_config.CheckboxColumn(label="選択", width="xxsmall"),
+        "メニュー名": st.column_config.TextColumn(label="メニュー名", width="large"),
     }
     for pfc in pfc_cols:
-        col_cfg[pfc] = st.column_config.NumberColumn(label=pfc, width="small")
+        col_cfg[pfc] = st.column_config.NumberColumn(label=pfc, width="xxsmall")
 
-    # data_editorで表示
     edited = st.data_editor(
         df_show,
         use_container_width=True,
@@ -97,11 +112,9 @@ if store:
         height=540
     )
 
-    # 選択された行のみ抽出
     selected = edited[edited["選択"]]
     st.write("✅ 選択中のメニュー", selected)
 
-    # 合計と円グラフ
     if not selected.empty:
         total = selected[pfc_cols].sum()
         st.write("### 選択メニューの合計")
@@ -110,7 +123,7 @@ if store:
         if "脂質 (g)" in total: st.write(f"脂質: {total['脂質 (g)']:.1f}g")
         if "炭水化物 (g)" in total: st.write(f"炭水化物: {total['炭水化物 (g)']:.1f}g")
 
-        # PFCバランス円グラフ
+        # PFC円グラフ
         pfc_vals = [
             total.get("たんぱく質 (g)", 0),
             total.get("脂質 (g)", 0),
