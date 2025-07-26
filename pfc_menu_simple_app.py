@@ -3,10 +3,12 @@ import pandas as pd
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, JsCode
 import jaconv
 import unidecode
+import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 import os
 
+# ▼ クラウド対応：リポジトリ内のfontsフォルダのフォントを使う
 fontpath = "fonts/NotoSansJP-Regular.ttf"
 if not os.path.isfile(fontpath):
     st.error(f"指定フォントが見つかりません: {fontpath}")
@@ -34,11 +36,6 @@ st.markdown("""
         font-size: 0.8em !important;
         padding-top: 0px !important;
         padding-bottom: 0px !important;
-    }
-    .ag-row {
-        height: 48px !important;
-        min-height: 48px !important;
-        max-height: 48px !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -71,9 +68,11 @@ if store:
     st.success(f"選択店舗：{store}")
     store_df = df[df["店舗名"] == store]
 
+    # ★カテゴリ選択
     category_options = store_df["カテゴリ"].dropna().unique().tolist()
     category = st.selectbox("カテゴリを選択してください", ["（全て表示）"] + category_options)
 
+    # ★カテゴリでフィルタ
     if category == "（全て表示）":
         filtered_df = store_df.copy()
     else:
@@ -95,21 +94,24 @@ if store:
     filtered_df["row_id"] = filtered_df.index.astype(str)
 
     cols = [col for col in filtered_df.columns if col not in ["店舗名", "店舗よみ", "店舗カナ", "店舗ローマ字", "row_id", "カテゴリ"]]
-    display_cols = ["メニュー名"] + [col for col in cols if col != "メニュー名"]
 
     menu_cell_style_jscode = JsCode("""
         function(params) {
             let text = params.value || '';
             let size = '0.95em';
-            if (text.length > 14) { size = '0.85em'; }
-            if (text.length > 22) { size = '0.75em'; }
+            if (text.length > 16) {
+                size = '0.8em';
+            }
+            if (text.length > 32) {
+                size = '0.7em';
+            }
             return {
                 'font-size': size,
                 'font-weight': 'bold',
                 'white-space': 'pre-wrap',
-                'line-height': '22px',
-                'minHeight': '48px',
-                'maxHeight': '48px',
+                'line-height': '18px',
+                'min-height': '38px',
+                'max-height': '38px',
                 'display': 'flex',
                 'align-items': 'center'
             }
@@ -130,28 +132,31 @@ if store:
     if selected_key not in st.session_state:
         st.session_state[selected_key] = []
 
-    gb = GridOptionsBuilder.from_dataframe(filtered_df[display_cols + ["row_id"]])
+    prev_selected_ids = st.session_state[selected_key]
+
+    gb = GridOptionsBuilder.from_dataframe(filtered_df[cols + ["row_id"]])
     gb.configure_selection('multiple', use_checkbox=True)
-    gb.configure_column("row_id", hide=True)
-    gb.configure_column("メニュー名", cellStyle=menu_cell_style_jscode, width=200, minWidth=180, maxWidth=280, resizable=False, checkboxSelection=True)  # ← pinnedを外している！
-    for col in display_cols:
+    gb.configure_column("メニュー名", cellStyle=menu_cell_style_jscode, width=200, minWidth=200, maxWidth=260, pinned="left", resizable=False)
+    for col in cols:
         if col != "メニュー名":
             gb.configure_column(col, width=36, minWidth=20, maxWidth=60, resizable=False, cellStyle=cell_style_jscode)
+    gb.configure_column("row_id", hide=True)
 
     grid_options = gb.build()
-    grid_options['rowHeight'] = 48
     grid_options['getRowNodeId'] = JsCode("function(data){ return data['row_id']; }")
-    grid_options['rowSelection'] = "multiple"
 
     grid_response = AgGrid(
-        filtered_df[display_cols + ["row_id"]],
+        filtered_df[cols + ["row_id"]],
         gridOptions=grid_options,
         update_mode=GridUpdateMode.SELECTION_CHANGED,
         fit_columns_on_grid_load=False,
-        height=440,
-        allow_unsafe_jscode=True
+        height=430,
+        allow_unsafe_jscode=True,
+        pre_selected_rows=prev_selected_ids
     )
     selected_rows = grid_response["selected_rows"]
+    if selected_rows is not None:
+        st.session_state[selected_key] = [row.get("row_id") for row in selected_rows if isinstance(row, dict) and row.get("row_id") is not None]
     if selected_rows is not None and len(selected_rows) > 0:
         selected_df = pd.DataFrame(selected_rows)
         total = selected_df[["カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"]].sum()
