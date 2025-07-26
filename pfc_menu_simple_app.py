@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, JsCode
+from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
 import jaconv
 import unidecode
 import matplotlib.pyplot as plt
@@ -94,8 +94,13 @@ if store:
     filtered_df = filtered_df.reset_index(drop=True)
     filtered_df["row_id"] = filtered_df.index.astype(str)
 
+    # --------- チェックボックス列を追加 ----------
+    if "選択" not in filtered_df.columns:
+        filtered_df.insert(0, "選択", False)
+
+    # 表示列
     cols = [col for col in filtered_df.columns if col not in ["店舗名", "店舗よみ", "店舗カナ", "店舗ローマ字", "row_id", "カテゴリ"]]
-    display_cols = ["メニュー名"] + [col for col in cols if col != "メニュー名"]
+    display_cols = ["選択", "メニュー名"] + [col for col in cols if col not in ["選択", "メニュー名"]]
 
     menu_cell_style_jscode = JsCode("""
         function(params) {
@@ -125,36 +130,34 @@ if store:
             }
         }
     """)
-    
-    selected_key = "selected_row_ids"
-    if selected_key not in st.session_state:
-        st.session_state[selected_key] = []
 
     gb = GridOptionsBuilder.from_dataframe(filtered_df[display_cols + ["row_id"]])
-    gb.configure_selection('multiple', use_checkbox=True)
+    # 「選択」列はeditableでチェックボックスになる
+    gb.configure_column("選択", editable=True, type=["boolean"], width=48)
     gb.configure_column("row_id", hide=True)
-    gb.configure_column("メニュー名", cellStyle=menu_cell_style_jscode, width=200, minWidth=180, maxWidth=280, resizable=False, checkboxSelection=True)  # ← pinnedを外している！
+    gb.configure_column("メニュー名", cellStyle=menu_cell_style_jscode, width=200, minWidth=180, maxWidth=280, resizable=False)
     for col in display_cols:
-        if col != "メニュー名":
+        if col not in ["選択", "メニュー名"]:
             gb.configure_column(col, width=36, minWidth=20, maxWidth=60, resizable=False, cellStyle=cell_style_jscode)
 
     grid_options = gb.build()
     grid_options['rowHeight'] = 48
     grid_options['getRowNodeId'] = JsCode("function(data){ return data['row_id']; }")
-    grid_options['rowSelection'] = "multiple"
 
     grid_response = AgGrid(
         filtered_df[display_cols + ["row_id"]],
         gridOptions=grid_options,
-        update_mode=GridUpdateMode.SELECTION_CHANGED,
+        update_mode="MODEL_CHANGED",
         fit_columns_on_grid_load=False,
         height=440,
         allow_unsafe_jscode=True
     )
-    selected_rows = grid_response["selected_rows"]
-    if selected_rows is not None and len(selected_rows) > 0:
-        selected_df = pd.DataFrame(selected_rows)
-        total = selected_df[["カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"]].sum()
+
+    # 選択行の取得
+    df_checked = pd.DataFrame(grid_response["data"])
+    checked = df_checked[df_checked["選択"] == True]
+    if not checked.empty:
+        total = checked[["カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"]].sum()
         st.markdown(
             f"### ✅ 選択メニューの合計\n"
             f"- カロリー: **{total['カロリー']:.0f}kcal**\n"
@@ -163,6 +166,7 @@ if store:
             f"- 炭水化物: **{total['炭水化物 (g)']:.1f}g**"
         )
 
+        # PFC円グラフ
         pfc_vals = [total["たんぱく質 (g)"], total["脂質 (g)"], total["炭水化物 (g)"]]
         pfc_labels = ["たんぱく質", "脂質", "炭水化物"]
         colors = ["#4e79a7", "#f28e2b", "#e15759"]
