@@ -3,13 +3,7 @@ import pandas as pd
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, JsCode
 import jaconv
 import unidecode
-import matplotlib
 import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
-
-# ▼ 必ずあなたの環境に合わせてパスを書き換えてください！
-fontpath = '/Users/あなたのユーザー名/Library/Fonts/NotoSansJP-Regular.otf'  # ここを正しいものに変更
-prop = fm.FontProperties(fname=fontpath)
 
 df = pd.read_csv("menu_data_all_chains.csv")
 if "カロリー" not in df.columns:
@@ -80,22 +74,13 @@ if store:
         filtered_df = filtered_df[filtered_df["メニュー名"].str.contains(keyword, case=False)]
     sort_by = st.radio("並び替え基準", ["カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"], horizontal=True)
     ascending = st.radio("並び順", ["昇順", "降順"], horizontal=True) == "昇順"
-    # KeyError完全防止
-    if sort_by in filtered_df.columns and not filtered_df.empty:
-        filtered_df = filtered_df.sort_values(by=sort_by, ascending=ascending)
-
-    # データ0件時の案内＆停止
-    if filtered_df.empty:
-        st.info("選択された条件ではメニューが見つかりません。")
-        st.stop()
+    filtered_df = filtered_df.sort_values(by=sort_by, ascending=ascending)
     
     # row_id列追加（indexでOK）
     filtered_df = filtered_df.reset_index(drop=True)
     filtered_df["row_id"] = filtered_df.index.astype(str)
 
-    # ★「カテゴリ」カラムを除外
-    cols = [col for col in filtered_df.columns if col not in ["店舗名", "店舗よみ", "店舗カナ", "店舗ローマ字", "row_id", "カテゴリ"]]
-
+    cols = [col for col in filtered_df.columns if col not in ["店舗名", "店舗よみ", "店舗カナ", "店舗ローマ字", "row_id"]]
     menu_cell_style_jscode = JsCode("""
         function(params) {
             let text = params.value || '';
@@ -110,11 +95,7 @@ if store:
                 'font-size': size,
                 'font-weight': 'bold',
                 'white-space': 'pre-wrap',
-                'line-height': '18px',
-                'min-height': '38px',
-                'max-height': '38px',
-                'display': 'flex',
-                'align-items': 'center'
+                'line-height': '1.1'
             }
         }
     """)
@@ -137,7 +118,7 @@ if store:
     prev_selected_ids = st.session_state[selected_key]
 
     gb = GridOptionsBuilder.from_dataframe(filtered_df[cols + ["row_id"]])
-    gb.configure_selection('multiple', use_checkbox=True)  # ← チェックボックスが一番左
+    gb.configure_selection('multiple', use_checkbox=True)
     gb.configure_column("メニュー名", cellStyle=menu_cell_style_jscode, width=200, minWidth=200, maxWidth=260, pinned="left", resizable=False)
     for col in cols:
         if col != "メニュー名":
@@ -175,22 +156,9 @@ if store:
         # ★ここからPFCバランス円グラフ
         pfc_vals = [total["たんぱく質 (g)"], total["脂質 (g)"], total["炭水化物 (g)"]]
         pfc_labels = ["たんぱく質", "脂質", "炭水化物"]
-        colors = ["#4e79a7", "#f28e2b", "#e15759"]
         fig, ax = plt.subplots()
-        wedges, texts, autotexts = ax.pie(
-            pfc_vals,
-            labels=pfc_labels,
-            autopct="%.1f%%",
-            startangle=90,
-            counterclock=False,
-            colors=colors,
-            textprops={'fontsize': 10, 'fontproperties': prop}
-        )
-        ax.set_title("PFCバランス", fontproperties=prop)
-        for text, color in zip(texts, colors):
-            text.set_color(color)
-            text.set_fontproperties(prop)
-        plt.tight_layout()
+        ax.pie(pfc_vals, labels=pfc_labels, autopct="%.1f%%", startangle=90, counterclock=False)
+        ax.set_title("PFCバランス")
         st.pyplot(fig)
 else:
     st.info("店舗名を入力してください（ひらがな・カタカナ・英語もOK）")
