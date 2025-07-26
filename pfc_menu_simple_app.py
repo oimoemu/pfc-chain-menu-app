@@ -27,30 +27,6 @@ if not all(col in df.columns for col in ["店舗よみ", "店舗カナ", "店舗
 st.set_page_config(page_title="PFCチェーンメニュー", layout="wide")
 st.title("PFCチェーンメニュー検索")
 
-# カスタムCSSで折り返し＋自動縮小
-st.markdown("""
-<style>
-.menu-cell {
-    max-width: 180px;
-    white-space: pre-wrap;
-    word-break: break-word;
-    font-size: 1em;
-    line-height: 1.2em;
-    min-height: 32px;
-    max-height: 48px;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-}
-.menu-cell.small {
-    font-size: 0.8em !important;
-}
-.menu-cell.xsmall {
-    font-size: 0.65em !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
 store_input = st.text_input("店舗名を入力（ひらがな・カタカナ・英語・一部でも可）", value="", key="store_search")
 candidates = []
 if len(store_input) > 0:
@@ -103,17 +79,6 @@ if store:
     pfc_cols = [col for col in ["カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"] if col in filtered_df.columns]
     df_show = filtered_df[["メニュー名"] + pfc_cols].copy()
     df_show.insert(0, "選択", False)
-
-    # メニュー名列を長さに応じて自動フォントサイズ縮小・折り返し
-    def render_menu_name(name):
-        if len(str(name)) > 25:
-            return f'<div class="menu-cell xsmall">{str(name)}</div>'
-        elif len(str(name)) > 14:
-            return f'<div class="menu-cell small">{str(name)}</div>'
-        else:
-            return f'<div class="menu-cell">{str(name)}</div>'
-
-    df_show["メニュー名"] = df_show["メニュー名"].apply(render_menu_name)
 
     # 列幅・型指定
     col_cfg = {
