@@ -1,11 +1,18 @@
-
 import streamlit as st
 import pandas as pd
-from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, JsCode
-import jaconv
-import unidecode
+from st_aggrid import AgGrid, GridOptionsBuilder, JsCode, GridUpdateMode
+import jaconv, unidecode
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+import os
 
+# --- フォント指定 ---
+fontpath = "fonts/NotoSansJP-Regular.ttf"
+if not os.path.isfile(fontpath):
+    st.error(f"指定フォントが見つかりません: {fontpath}")
+prop = fm.FontProperties(fname=fontpath)
+
+# --- データ読み込み ---
 df = pd.read_csv("menu_data_all_chains.csv")
 if "カロリー" not in df.columns:
     df["カロリー"] = 0
@@ -13,160 +20,108 @@ if "カロリー" not in df.columns:
 def get_yomi(text):
     hira = jaconv.kata2hira(jaconv.z2h(str(text), kana=True, digit=False, ascii=False))
     kata = jaconv.hira2kata(hira)
-    roma = unidecode.unidecode(text)  # ローマ字化
+    roma = unidecode.unidecode(text)
     return hira, kata, roma.lower()
-
 if not all(col in df.columns for col in ["店舗よみ", "店舗カナ", "店舗ローマ字"]):
     df["店舗よみ"], df["店舗カナ"], df["店舗ローマ字"] = zip(*df["店舗名"].map(get_yomi))
 
 st.set_page_config(page_title="PFCチェーンメニュー", layout="wide")
 st.title("PFCチェーンメニュー検索")
 
-st.markdown("""
-    <style>
-    .ag-header-cell-label {
-        font-size: 0.8em !important;
-        padding-top: 0px !important;
-        padding-bottom: 0px !important;
+# --- 店舗選択などは省略（上のサンプル参照） ---
+# ここでは「filtered_df」を作ったあとの部分から
+
+# 例: 検索結果DataFrame
+filtered_df = df.head(20).copy()  # デモ用。実装時は検索ロジックを使って！
+
+# --- 各行に「追加」ボタン列を作る ---
+filtered_df = filtered_df.reset_index(drop=True)
+filtered_df["row_id"] = filtered_df.index.astype(str)
+if "追加" not in filtered_df.columns:
+    filtered_df["追加"] = ""
+
+# --- 追加ボタン用のJSコード（AgGrid公式サンプルから）---
+add_button_js = JsCode("""
+    class BtnCellRenderer {
+      init(params) {
+        this.params = params;
+        this.eGui = document.createElement('button');
+        this.eGui.innerHTML = '追加';
+        this.eGui.className = 'st-aggrid-btn';
+        this.eGui.onclick = () => {
+            window.dispatchEvent(
+                new CustomEvent('streamlit:aggrid_add_row', {detail: {rowId: params.data.row_id}})
+            );
+        };
+      }
+      getGui() { return this.eGui; }
     }
-    </style>
-    """, unsafe_allow_html=True)
+""")
 
-store_input = st.text_input("店舗名を入力（ひらがな・カタカナ・英語・一部でも可）", value="", key="store_search")
-candidates = []
-if len(store_input) > 0:
-    hira = jaconv.kata2hira(jaconv.z2h(store_input, kana=True, digit=False, ascii=False))
-    kata = jaconv.hira2kata(hira)
-    roma = unidecode.unidecode(store_input).lower()
-    match = df[
-        df["店舗よみ"].str.contains(hira)
-        | df["店舗カナ"].str.contains(kata)
-        | df["店舗名"].str.contains(store_input)
-        | df["店舗ローマ字"].str.contains(roma)
-    ].店舗名.unique().tolist()
-    candidates = match[:10]
-if len(candidates) == 0 and store_input:
-    st.warning("該当する店舗がありません")
-if "selected_store" not in st.session_state:
-    st.session_state["selected_store"] = None
-if len(candidates) > 0:
-    st.markdown("#### 候補店舗（クリックで選択）")
-    for c in candidates:
-        if st.button(c, key=f"select_{c}"):
-            st.session_state["selected_store"] = c
-store = st.session_state.get("selected_store", None)
+gb = GridOptionsBuilder.from_dataframe(filtered_df)
+gb.configure_column("追加", header_name="", cellRenderer=add_button_js, width=70, pinned="left")
+for col in ["メニュー名", "カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"]:
+    if col in filtered_df.columns:
+        gb.configure_column(col, width=120 if col == "メニュー名" else 60, resizable=True)
 
-if store:
-    st.success(f"選択店舗：{store}")
-    store_df = df[df["店舗名"] == store]
+gb.configure_column("row_id", hide=True)
+grid_options = gb.build()
+grid_options['getRowNodeId'] = JsCode("function(data){ return data['row_id']; }")
 
-    # ★カテゴリ選択
-    category_options = store_df["カテゴリ"].dropna().unique().tolist()
-    category = st.selectbox("カテゴリを選択してください", ["（全て表示）"] + category_options)
+# --- AgGrid表示 ---
+grid_response = AgGrid(
+    filtered_df,
+    gridOptions=grid_options,
+    fit_columns_on_grid_load=False,
+    update_mode=GridUpdateMode.NO_UPDATE,
+    allow_unsafe_jscode=True,
+    height=460,
+    custom_js_events=["streamlit:aggrid_add_row"]
+)
 
-    # ★カテゴリでフィルタ
-    if category == "（全て表示）":
-        filtered_df = store_df.copy()
-    else:
-        filtered_df = store_df[store_df["カテゴリ"] == category]
+# --- セッションで「選択中リスト」を管理 ---
+if "selected_row_ids" not in st.session_state:
+    st.session_state["selected_row_ids"] = []
 
-    keyword = st.text_input("メニュー名で絞り込み（例：チーズ/カレーなど）")
-    if keyword:
-        filtered_df = filtered_df[filtered_df["メニュー名"].str.contains(keyword, case=False)]
-    sort_by = st.radio("並び替え基準", ["カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"], horizontal=True)
-    ascending = st.radio("並び順", ["昇順", "降順"], horizontal=True) == "昇順"
-    filtered_df = filtered_df.sort_values(by=sort_by, ascending=ascending)
-    
-    # row_id列追加（indexでOK）
-    filtered_df = filtered_df.reset_index(drop=True)
-    filtered_df["row_id"] = filtered_df.index.astype(str)
+# --- JSイベント受信で「追加」 ---
+if grid_response["custom_js_events"]:
+    for event in grid_response["custom_js_events"]:
+        if event["name"] == "streamlit:aggrid_add_row":
+            row_id = event["detail"]["rowId"]
+            if row_id not in st.session_state["selected_row_ids"]:
+                st.session_state["selected_row_ids"].append(row_id)
 
-    # ★「カテゴリ」カラムを除外
-    cols = [col for col in filtered_df.columns if col not in ["店舗名", "店舗よみ", "店舗カナ", "店舗ローマ字", "row_id", "カテゴリ"]]
+# --- 「選択中リスト」の表示 ---
+selected_rows = filtered_df[filtered_df["row_id"].isin(st.session_state["selected_row_ids"])]
+st.write("### ✅ 選択中のメニュー", selected_rows)
 
-    menu_cell_style_jscode = JsCode("""
-        function(params) {
-            let text = params.value || '';
-            let size = '0.95em';
-            if (text.length > 16) {
-                size = '0.8em';
-            }
-            if (text.length > 32) {
-                size = '0.7em';
-            }
-            return {
-                'font-size': size,
-                'font-weight': 'bold',
-                'white-space': 'pre-wrap',
-                'line-height': '18px',
-                'min-height': '38px',
-                'max-height': '38px',
-                'display': 'flex',
-                'align-items': 'center'
-            }
-        }
-    """)
-    cell_style_jscode = JsCode("""
-        function(params) {
-            return {
-                'font-size': '0.8em',
-                'max-width': '36px',
-                'white-space': 'pre-wrap',
-                'padding': '1px'
-            }
-        }
-    """)
-    
-    # --- 選択状態をrow_idで管理 ---
-    selected_key = "selected_row_ids"
-    if selected_key not in st.session_state:
-        st.session_state[selected_key] = []
-
-    prev_selected_ids = st.session_state[selected_key]
-
-    gb = GridOptionsBuilder.from_dataframe(filtered_df[cols + ["row_id"]])
-    gb.configure_selection('multiple', use_checkbox=True)  # ← チェックボックスが一番左
-    gb.configure_column("メニュー名", cellStyle=menu_cell_style_jscode, width=200, minWidth=200, maxWidth=260, pinned="left", resizable=False)
-    for col in cols:
-        if col != "メニュー名":
-            gb.configure_column(col, width=36, minWidth=20, maxWidth=60, resizable=False, cellStyle=cell_style_jscode)
-    gb.configure_column("row_id", hide=True)
-
-    # 行IDをrow_idに（getRowNodeId）
-    grid_options = gb.build()
-    grid_options['getRowNodeId'] = JsCode("function(data){ return data['row_id']; }")
-
-    grid_response = AgGrid(
-        filtered_df[cols + ["row_id"]],
-        gridOptions=grid_options,
-        update_mode=GridUpdateMode.SELECTION_CHANGED,
-        fit_columns_on_grid_load=False,
-        height=430,
-        allow_unsafe_jscode=True,
-        pre_selected_rows=prev_selected_ids
+# --- 合計とPFC円グラフ
+if not selected_rows.empty:
+    total = selected_rows[["カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"]].sum()
+    st.write("### 選択メニューの合計")
+    st.write(f"カロリー: {total['カロリー']:.0f}kcal")
+    st.write(f"たんぱく質: {total['たんぱく質 (g)']:.1f}g")
+    st.write(f"脂質: {total['脂質 (g)']:.1f}g")
+    st.write(f"炭水化物: {total['炭水化物 (g)']:.1f}g")
+    # PFC円グラフ
+    pfc_vals = [total["たんぱく質 (g)"], total["脂質 (g)"], total["炭水化物 (g)"]]
+    pfc_labels = ["たんぱく質", "脂質", "炭水化物"]
+    colors = ["#4e79a7", "#f28e2b", "#e15759"]
+    fig, ax = plt.subplots()
+    wedges, texts, autotexts = ax.pie(
+        pfc_vals,
+        labels=pfc_labels,
+        autopct="%.1f%%",
+        startangle=90,
+        counterclock=False,
+        colors=colors,
+        textprops={'fontsize': 10, 'fontproperties': prop}
     )
-    selected_rows = grid_response["selected_rows"]
-    # 選択row_idをセッションに保存
-    if selected_rows is not None:
-        st.session_state[selected_key] = [row.get("row_id") for row in selected_rows if isinstance(row, dict) and row.get("row_id") is not None]
-    if selected_rows is not None and len(selected_rows) > 0:
-        selected_df = pd.DataFrame(selected_rows)
-        total = selected_df[["カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"]].sum()
-        st.markdown(
-            f"### ✅ 選択メニューの合計\n"
-            f"- カロリー: **{total['カロリー']:.0f}kcal**\n"
-            f"- たんぱく質: **{total['たんぱく質 (g)']:.1f}g**\n"
-            f"- 脂質: **{total['脂質 (g)']:.1f}g**\n"
-            f"- 炭水化物: **{total['炭水化物 (g)']:.1f}g**"
-        )
+    ax.set_title("PFCバランス", fontproperties=prop)
+    for text, color in zip(texts, colors):
+        text.set_color(color)
+        text.set_fontproperties(prop)
+    plt.tight_layout()
+    st.pyplot(fig)
 
-        # ★ここからPFCバランス円グラフ
-        pfc_vals = [total["たんぱく質 (g)"], total["脂質 (g)"], total["炭水化物 (g)"]]
-        pfc_labels = ["たんぱく質", "脂質", "炭水化物"]
-        fig, ax = plt.subplots()
-        ax.pie(pfc_vals, labels=pfc_labels, autopct="%.1f%%", startangle=90, counterclock=False)
-        ax.set_title("PFCバランス")
-        st.pyplot(fig)
-else:
-    st.info("店舗名を入力してください（ひらがな・カタカナ・英語もOK）")
-        
+# --- 選択済みリストから削除もやりたい場合は「削除」ボタンもリスト側で追加可 ---
