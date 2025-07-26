@@ -27,7 +27,7 @@ if not all(col in df.columns for col in ["店舗よみ", "店舗カナ", "店舗
 st.set_page_config(page_title="PFCチェーンメニュー", layout="wide")
 st.title("PFCチェーンメニュー検索")
 
-# カスタムCSS
+# カスタムCSSで折り返し＋自動縮小
 st.markdown("""
 <style>
 .menu-cell {
@@ -115,15 +115,15 @@ if store:
 
     df_show["メニュー名"] = df_show["メニュー名"].apply(render_menu_name)
 
-    # 列幅指定
+    # 列幅・型指定
     col_cfg = {
         "選択": st.column_config.CheckboxColumn(label="選択", width="small"),
-        "メニュー名": st.column_config.MarkdownColumn(label="メニュー名", width="medium"),
+        "メニュー名": st.column_config.TextColumn(label="メニュー名", width="medium"),
     }
     for pfc in pfc_cols:
         col_cfg[pfc] = st.column_config.NumberColumn(label=pfc, width="small")
 
-    # データエディタで表示
+    # data_editorで表示
     edited = st.data_editor(
         df_show,
         use_container_width=True,
