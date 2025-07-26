@@ -132,8 +132,8 @@ if store:
     """)
 
     gb = GridOptionsBuilder.from_dataframe(filtered_df[display_cols + ["row_id"]])
-    # 「選択」列はeditableでチェックボックスになる
-    gb.configure_column("選択", editable=True, type=["boolean"], width=48)
+    # 「選択」列はeditableでチェックボックスになる(cellEditor明示)
+    gb.configure_column("選択", editable=True, type=["boolean"], cellEditor="agCheckboxCellEditor", width=48)
     gb.configure_column("row_id", hide=True)
     gb.configure_column("メニュー名", cellStyle=menu_cell_style_jscode, width=200, minWidth=180, maxWidth=280, resizable=False)
     for col in display_cols:
