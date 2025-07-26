@@ -143,8 +143,10 @@ if store:
     if "selected_row_ids" not in st.session_state:
         st.session_state["selected_row_ids"] = []
 
-    if grid_response["custom_js_events"]:
-        for event in grid_response["custom_js_events"]:
+    # ← KeyError完全回避
+    custom_events = grid_response.get("custom_js_events", [])
+    if custom_events:
+        for event in custom_events:
             if event["name"] == "streamlit:aggrid_add_row":
                 row_id = event["detail"]["rowId"]
                 if row_id not in st.session_state["selected_row_ids"]:
