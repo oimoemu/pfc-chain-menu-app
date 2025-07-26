@@ -27,18 +27,23 @@ if not all(col in df.columns for col in ["店舗よみ", "店舗カナ", "店舗
 st.set_page_config(page_title="PFCチェーンメニュー", layout="wide")
 st.title("PFCチェーンメニュー検索")
 
-# メニュー名カスタムCSSで小フォント＋折り返し
+# グローバルCSS：列幅を固定・折り返し・フォント縮小
 st.markdown("""
 <style>
-.st-emotion-cache-13ejsyy {
-    font-size: 12px !important;
+th, td {
+    max-width: 100px !important;  /* カロリー/PFCは狭く */
+    min-width: 50px !important;
     white-space: pre-wrap !important;
     word-break: break-all !important;
-    line-height: 1.2 !important;
+    font-size: 12px !important;
 }
-th, td {
-    white-space: pre-wrap !important;
-    word-break: break-word !important;
+td:nth-child(2), th:nth-child(2) {
+    max-width: 210px !important;  /* メニュー名だけ幅広く固定 */
+    min-width: 150px !important;
+    font-size: 11px !important;
+}
+td, th {
+    line-height: 1.15 !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -91,18 +96,18 @@ if store:
         st.info("選択された条件ではメニューが見つかりません。")
         st.stop()
 
-    # 表示用DataFrameの列順指定
+    # 列順・サイズ指定
     pfc_cols = [col for col in ["カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"] if col in filtered_df.columns]
     df_show = filtered_df[["メニュー名"] + pfc_cols].copy()
     df_show.insert(0, "選択", False)
 
-    # カラム幅と型のカスタム
+    # 列幅と型のカスタム
     col_cfg = {
-        "選択": st.column_config.CheckboxColumn(label="選択", width="xxsmall"),
-        "メニュー名": st.column_config.TextColumn(label="メニュー名", width="large"),
+        "選択": st.column_config.CheckboxColumn(label="選択", width="small"),
+        "メニュー名": st.column_config.TextColumn(label="メニュー名", width="medium"),
     }
     for pfc in pfc_cols:
-        col_cfg[pfc] = st.column_config.NumberColumn(label=pfc, width="xxsmall")
+        col_cfg[pfc] = st.column_config.NumberColumn(label=pfc, width="small")
 
     edited = st.data_editor(
         df_show,
