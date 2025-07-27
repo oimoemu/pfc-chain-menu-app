@@ -171,11 +171,32 @@ if store:
         )
 
         # PFCバランス円グラフ
-        pfc_vals = [total["たんぱく質 (g)"], total["脂質 (g)"], total["炭水化物 (g)"]]
+        pfc_vals = [
+            total.get("たんぱく質 (g)", 0),
+            total.get("脂質 (g)", 0),
+            total.get("炭水化物 (g)", 0)
+        ]
         pfc_labels = ["たんぱく質", "脂質", "炭水化物"]
+        colors = ["#4e79a7", "#f28e2b", "#e15759"]
         fig, ax = plt.subplots()
-        ax.pie(pfc_vals, labels=pfc_labels, autopct="%.1f%%", startangle=90, counterclock=False)
-        ax.set_title("PFCバランス")
+        wedges, texts, autotexts = ax.pie(
+            pfc_vals,
+            labels=pfc_labels,
+            autopct="%.1f%%",
+            startangle=90,
+            counterclock=False,
+            colors=colors,
+            textprops={'fontsize': 10, 'fontproperties': prop}
+        )
+        ax.set_title("PFCバランス", fontproperties=prop)
+        for text, color in zip(texts, colors):
+            text.set_color(color)
+            text.set_fontproperties(prop)
+        plt.tight_layout()
         st.pyplot(fig)
+    else:
+        st.info("左端のチェックを選択してください")
+
 else:
     st.info("店舗名を入力してください（ひらがな・カタカナ・英語もOK）")
+
