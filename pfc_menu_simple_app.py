@@ -148,6 +148,17 @@ if store:
         pre_selected_rows=prev_selected_ids
     )
 
+    selected = edited[edited["選択"]]
+    st.write("✅ 選択中のメニュー", selected)
+
+    if not selected.empty:
+        total = selected[pfc_cols].sum()
+        st.write("### 選択メニューの合計")
+        if "カロリー" in total: st.write(f"カロリー: {total['カロリー']:.0f}kcal")
+        if "たんぱく質 (g)" in total: st.write(f"たんぱく質: {total['たんぱく質 (g)']:.1f}g")
+        if "脂質 (g)" in total: st.write(f"脂質: {total['脂質 (g)']:.1f}g")
+        if "炭水化物 (g)" in total: st.write(f"炭水化物: {total['炭水化物 (g)']:.1f}g")
+
     # 選択row_idをセッションに保存
     selected_rows = grid_response["selected_rows"]
     if selected_rows is not None:
