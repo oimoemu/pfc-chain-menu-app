@@ -5,6 +5,46 @@ import unidecode
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 import os
+# ...import文のすぐ後
+st.markdown("""
+<style>
+/* 追加欄（1列目）幅固定 */
+[data-testid="stDataFrame"] table td:nth-child(1),
+[data-testid="stDataFrame"] table th:nth-child(1),
+[data-testid="stDataFrameStatic"] table td:nth-child(1),
+[data-testid="stDataFrameStatic"] table th:nth-child(1) {
+    min-width: 40px !important;
+    max-width: 40px !important;
+    width: 40px !important;
+    text-align: center !important;
+}
+/* メニュー名（2列目）超小フォント＆折り返し */
+[data-testid="stDataFrame"] table td:nth-child(2),
+[data-testid="stDataFrame"] table th:nth-child(2),
+[data-testid="stDataFrameStatic"] table td:nth-child(2),
+[data-testid="stDataFrameStatic"] table th:nth-child(2) {
+    font-size: 8.5px !important;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    min-width: 70px !important;
+    max-width: 150px !important;
+    line-height: 1.08 !important;
+    padding-top: 1px !important;
+    padding-bottom: 1px !important;
+    vertical-align: top !important;
+}
+/* 全体も小さめに */
+[data-testid="stDataFrame"] table, 
+[data-testid="stDataFrame"] table td, 
+[data-testid="stDataFrame"] table th,
+[data-testid="stDataFrameStatic"] table, 
+[data-testid="stDataFrameStatic"] table td, 
+[data-testid="stDataFrameStatic"] table th {
+    font-size: 10px !important;
+    line-height: 1.1 !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
 fontpath = "fonts/NotoSansJP-Regular.ttf"
 if not os.path.isfile(fontpath):
