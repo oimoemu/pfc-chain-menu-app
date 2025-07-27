@@ -1,3 +1,11 @@
+
+import streamlit as st
+import pandas as pd
+import jaconv
+import unidecode
+import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+import os
 st.markdown("""
 <style>
 /* まず全体を小フォント化（10px） */
@@ -25,14 +33,6 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
-import streamlit as st
-import pandas as pd
-import jaconv
-import unidecode
-import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
-import os
-
 fontpath = "fonts/NotoSansJP-Regular.ttf"
 if not os.path.isfile(fontpath):
     st.error(f"指定フォントが見つかりません: {fontpath}")
