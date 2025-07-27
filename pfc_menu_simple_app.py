@@ -1,3 +1,30 @@
+st.markdown("""
+<style>
+/* まず全体を小フォント化（10px） */
+[data-testid="stDataFrame"] table, 
+[data-testid="stDataFrame"] table td, 
+[data-testid="stDataFrame"] table th {
+    font-size: 10px !important;
+    line-height: 1.1 !important;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    vertical-align: top !important;
+}
+/* メニュー名列（2列目）だけさらに小さく（8.5px）・幅狭・詰める */
+[data-testid="stDataFrame"] table td:nth-child(2),
+[data-testid="stDataFrame"] table th:nth-child(2) {
+    font-size: 8.5px !important;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    min-width: 70px !important;
+    max-width: 140px !important;
+    line-height: 1.05 !important;
+    padding-top: 1px !important;
+    padding-bottom: 1px !important;
+    vertical-align: top !important;
+}
+</style>
+""", unsafe_allow_html=True)
 import streamlit as st
 import pandas as pd
 import jaconv
@@ -157,21 +184,3 @@ if store:
 
 else:
     st.info("店舗名を入力してください（ひらがな・カタカナ・英語もOK）")
-    st.markdown("""
-<style>
-/* メニュー名列（2列目）だけ超小フォント（9px）・折り返し強制 */
-[data-testid="stDataFrame"] table td:nth-child(2),
-[data-testid="stDataFrame"] table th:nth-child(2) {
-    font-size: 9px !important;
-    white-space: pre-wrap !important;
-    word-break: break-word !important;
-    min-width: 80px !important;
-    max-width: 180px !important;
-    line-height: 1.1 !important;
-    padding-top: 2px !important;
-    padding-bottom: 2px !important;
-    vertical-align: top !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
