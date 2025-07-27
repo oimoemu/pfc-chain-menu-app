@@ -132,19 +132,18 @@ if store:
     grid_options = gb.build()
     grid_options['getRowNodeId'] = JsCode("function(data){ return data['row_id']; }")
     grid_options['rowHeight'] = 48  # ← ここを追加！（好きな高さに調整OK）
+    num_rows = len(filtered_df)
+    table_height = min(max(num_rows, 8), 20) * 48 + 80  # 8行～20行ぶん確保
 
-  num_rows = len(filtered_df)
-table_height = min(max(num_rows, 8), 20) * 48 + 80  # 8行～20行ぶん確保
-
-grid_response = AgGrid(
-    filtered_df[cols + ["row_id"]],
-    gridOptions=grid_options,
-    update_mode=GridUpdateMode.SELECTION_CHANGED,
-    fit_columns_on_grid_load=False,
-    height=table_height,  # ここも自動計算
-    allow_unsafe_jscode=True,
-    pre_selected_rows=prev_selected_ids
-)
+    grid_response = AgGrid(
+        filtered_df[cols + ["row_id"]],
+        gridOptions=grid_options,
+        update_mode=GridUpdateMode.SELECTION_CHANGED,
+        fit_columns_on_grid_load=False,
+        height=table_height,  # ここも自動計算
+        allow_unsafe_jscode=True,
+        pre_selected_rows=prev_selected_ids
+    )
 
     # 選択row_idをセッションに保存
     selected_rows = grid_response["selected_rows"]
