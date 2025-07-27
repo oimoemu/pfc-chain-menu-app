@@ -31,7 +31,7 @@ st.title("PFCチェーンメニュー検索")
 st.markdown("""
     <style>
     .ag-header-cell-label {
-        font-size: 0.8em !important;
+        font-size: 0.6em !important;
         padding-top: 0px !important;
         padding-bottom: 0px !important;
     }
