@@ -3,4 +3,4 @@ pandas
 matplotlib
 jaconv
 unidecode
-streamlit-aggrid==1.1.7.post3
+streamlit-aggrid==1.1.7
