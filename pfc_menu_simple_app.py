@@ -131,6 +131,7 @@ if store:
     # 行IDをrow_idに（getRowNodeId）
     grid_options = gb.build()
     grid_options['getRowNodeId'] = JsCode("function(data){ return data['row_id']; }")
+    grid_options['rowHeight'] = 48  # ← ここを追加！（好きな高さに調整OK）
 
     grid_response = AgGrid(
         filtered_df[cols + ["row_id"]],
