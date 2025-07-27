@@ -131,7 +131,7 @@ if store:
     # 行IDをrow_idに（getRowNodeId）
     grid_options = gb.build()
     grid_options['getRowNodeId'] = JsCode("function(data){ return data['row_id']; }")
-    grid_options['rowHeight'] = 48  # ← ここを追加！（好きな高さに調整OK）
+    grid_options['rowHeight'] = 38  # ← ここを追加！（好きな高さに調整OK）
     row_height = 48
     num_rows = len(filtered_df)
     table_height = max(min(num_rows, 12), 8) * row_height + 60  # 8行以上12行以下で自動
