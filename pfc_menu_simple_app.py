@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, JsCode
@@ -80,7 +81,9 @@ if store:
     filtered_df = filtered_df.reset_index(drop=True)
     filtered_df["row_id"] = filtered_df.index.astype(str)
 
-    cols = [col for col in filtered_df.columns if col not in ["店舗名", "店舗よみ", "店舗カナ", "店舗ローマ字", "row_id"]]
+    # ★「カテゴリ」カラムを除外
+    cols = [col for col in filtered_df.columns if col not in ["店舗名", "店舗よみ", "店舗カナ", "店舗ローマ字", "row_id", "カテゴリ"]]
+
     menu_cell_style_jscode = JsCode("""
         function(params) {
             let text = params.value || '';
@@ -95,7 +98,11 @@ if store:
                 'font-size': size,
                 'font-weight': 'bold',
                 'white-space': 'pre-wrap',
-                'line-height': '1.1'
+                'line-height': '18px',
+                'min-height': '38px',
+                'max-height': '38px',
+                'display': 'flex',
+                'align-items': 'center'
             }
         }
     """)
@@ -118,7 +125,7 @@ if store:
     prev_selected_ids = st.session_state[selected_key]
 
     gb = GridOptionsBuilder.from_dataframe(filtered_df[cols + ["row_id"]])
-    gb.configure_selection('multiple', use_checkbox=True)
+    gb.configure_selection('multiple', use_checkbox=True)  # ← チェックボックスが一番左
     gb.configure_column("メニュー名", cellStyle=menu_cell_style_jscode, width=200, minWidth=200, maxWidth=260, pinned="left", resizable=False)
     for col in cols:
         if col != "メニュー名":
@@ -162,3 +169,4 @@ if store:
         st.pyplot(fig)
 else:
     st.info("店舗名を入力してください（ひらがな・カタカナ・英語もOK）")
+        
