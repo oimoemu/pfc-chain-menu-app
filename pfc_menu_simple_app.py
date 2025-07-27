@@ -134,7 +134,7 @@ if store:
     grid_options['rowHeight'] = 48  # ← ここを追加！（好きな高さに調整OK）
     row_height = 48
     num_rows = len(filtered_df)
-    table_height = max(min(num_rows, 12), 8) * row_height + 80  # 8行以上12行以下で自動
+    table_height = max(min(num_rows, 12), 8) * row_height + 60  # 8行以上12行以下で自動
 
     grid_options['rowHeight'] = row_height
 
