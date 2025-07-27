@@ -132,8 +132,11 @@ if store:
     grid_options = gb.build()
     grid_options['getRowNodeId'] = JsCode("function(data){ return data['row_id']; }")
     grid_options['rowHeight'] = 48  # ← ここを追加！（好きな高さに調整OK）
+    row_height = 48
     num_rows = len(filtered_df)
-    table_height = min(max(num_rows, 8), 20) * 48 + 80  # 8行～20行ぶん確保
+    table_height = max(min(num_rows, 12), 8) * row_height + 80  # 8行以上12行以下で自動
+
+    grid_options['rowHeight'] = row_height
 
     grid_response = AgGrid(
         filtered_df[cols + ["row_id"]],
