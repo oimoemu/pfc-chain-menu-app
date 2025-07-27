@@ -157,3 +157,21 @@ if store:
 
 else:
     st.info("店舗名を入力してください（ひらがな・カタカナ・英語もOK）")
+    st.markdown("""
+<style>
+/* メニュー名列（2列目）だけ超小フォント（9px）・折り返し強制 */
+[data-testid="stDataFrame"] table td:nth-child(2),
+[data-testid="stDataFrame"] table th:nth-child(2) {
+    font-size: 9px !important;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    min-width: 80px !important;
+    max-width: 180px !important;
+    line-height: 1.1 !important;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    vertical-align: top !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
