@@ -76,14 +76,14 @@ if store:
     ascending = st.radio("並び順", ["昇順", "降順"], horizontal=True) == "昇順"
     filtered_df = filtered_df.sort_values(by=sort_by, ascending=ascending)
 
-    # 行インデックスをrow_idとし、ユニークな値に
+    # インデックスをリセットし、row_id列を生成
     filtered_df = filtered_df.reset_index(drop=True)
     filtered_df["row_id"] = filtered_df.index.astype(str)
 
-    # 表示カラム（カテゴリを除く！）
+    # 表示カラムリスト（カテゴリを除く）
     cols = [col for col in filtered_df.columns if col not in ["店舗名", "店舗よみ", "店舗カナ", "店舗ローマ字", "row_id", "カテゴリ"]]
 
-    # 選択管理
+    # 選択状態をrow_idで管理
     selected_key = "selected_row_ids"
     if selected_key not in st.session_state:
         st.session_state[selected_key] = []
@@ -121,7 +121,7 @@ if store:
     """)
 
     gb = GridOptionsBuilder.from_dataframe(filtered_df[cols + ["row_id"]])
-    gb.configure_selection('multiple', use_checkbox=True, use_row_ids=True)
+    gb.configure_selection('multiple', use_checkbox=True)
     gb.configure_column("メニュー名", cellStyle=menu_cell_style_jscode, width=200, minWidth=200, maxWidth=260, pinned="left", resizable=False)
     for col in cols:
         if col != "メニュー名":
@@ -132,7 +132,6 @@ if store:
     grid_options = gb.build()
     grid_options['getRowNodeId'] = JsCode("function(data){ return data['row_id']; }")
 
-    # pre_selected_rowsもrow_idリストに！
     grid_response = AgGrid(
         filtered_df[cols + ["row_id"]],
         gridOptions=grid_options,
@@ -144,10 +143,9 @@ if store:
     )
 
     # 選択row_idをセッションに保存
-    # selected_rowsの各row_idを取得し、次回pre_selected_rowsに正確に渡す
     selected_rows = grid_response["selected_rows"]
     if selected_rows is not None:
-        st.session_state[selected_key] = [row["row_id"] for row in selected_rows if isinstance(row, dict) and row.get("row_id") is not None]
+        st.session_state[selected_key] = [row.get("row_id") for row in selected_rows if isinstance(row, dict) and row.get("row_id") is not None]
 
     if selected_rows is not None and len(selected_rows) > 0:
         selected_df = pd.DataFrame(selected_rows)
