@@ -5,6 +5,11 @@ import jaconv
 import unidecode
 import matplotlib.pyplot as plt
 
+fontpath = "fonts/NotoSansJP-Regular.ttf"
+if not os.path.isfile(fontpath):
+    st.error(f"指定フォントが見つかりません: {fontpath}")
+prop = fm.FontProperties(fname=fontpath)
+
 df = pd.read_csv("menu_data_all_chains.csv")
 if "カロリー" not in df.columns:
     df["カロリー"] = 0
