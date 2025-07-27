@@ -80,7 +80,7 @@ if store:
     filtered_df = filtered_df.reset_index(drop=True)
     filtered_df["row_id"] = filtered_df.index.astype(str)
 
-    cols = [col for col in filtered_df.columns if col not in ["店舗名", "店舗よみ", "店舗カナ", "店舗ローマ字", "row_id"]]
+    cols = [col for col in filtered_df.columns if col not in ["店舗名", "店舗よみ", "店舗カナ", "店舗ローマ字", "row_id", "カテゴリ"]]
     menu_cell_style_jscode = JsCode("""
         function(params) {
             let text = params.value || '';
@@ -129,9 +129,7 @@ if store:
     grid_options = gb.build()
     grid_options['getRowNodeId'] = JsCode("function(data){ return data['row_id']; }")
 
-    # display_colsやshow_cols、またはAgGrid/data_editorに渡すDataFrameの直前
-df_show = df_show.drop(columns=["カテゴリ"], errors="ignore")
-grid_response = AgGrid(
+    grid_response = AgGrid(
         filtered_df[cols + ["row_id"]],
         gridOptions=grid_options,
         update_mode=GridUpdateMode.SELECTION_CHANGED,
