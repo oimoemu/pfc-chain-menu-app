@@ -59,11 +59,11 @@ if store:
     st.success(f"選択店舗：{store}")
     store_df = df[df["店舗名"] == store]
 
-    # ★カテゴリ選択
+    # カテゴリ選択
     category_options = store_df["カテゴリ"].dropna().unique().tolist()
     category = st.selectbox("カテゴリを選択してください", ["（全て表示）"] + category_options)
 
-    # ★カテゴリでフィルタ
+    # カテゴリでフィルタ
     if category == "（全て表示）":
         filtered_df = store_df.copy()
     else:
@@ -75,12 +75,22 @@ if store:
     sort_by = st.radio("並び替え基準", ["カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"], horizontal=True)
     ascending = st.radio("並び順", ["昇順", "降順"], horizontal=True) == "昇順"
     filtered_df = filtered_df.sort_values(by=sort_by, ascending=ascending)
-    
-    # row_id列追加（indexでOK）
+
+    # 行インデックスをrow_idとし、ユニークな値に
     filtered_df = filtered_df.reset_index(drop=True)
     filtered_df["row_id"] = filtered_df.index.astype(str)
 
+    # 表示カラム（カテゴリを除く！）
     cols = [col for col in filtered_df.columns if col not in ["店舗名", "店舗よみ", "店舗カナ", "店舗ローマ字", "row_id", "カテゴリ"]]
+
+    # 選択管理
+    selected_key = "selected_row_ids"
+    if selected_key not in st.session_state:
+        st.session_state[selected_key] = []
+
+    prev_selected_ids = st.session_state[selected_key]
+
+    # カスタムstyle
     menu_cell_style_jscode = JsCode("""
         function(params) {
             let text = params.value || '';
@@ -109,16 +119,9 @@ if store:
             }
         }
     """)
-    
-    # --- 選択状態をrow_idで管理 ---
-    selected_key = "selected_row_ids"
-    if selected_key not in st.session_state:
-        st.session_state[selected_key] = []
-
-    prev_selected_ids = st.session_state[selected_key]
 
     gb = GridOptionsBuilder.from_dataframe(filtered_df[cols + ["row_id"]])
-    gb.configure_selection('multiple', use_checkbox=True)
+    gb.configure_selection('multiple', use_checkbox=True, use_row_ids=True)
     gb.configure_column("メニュー名", cellStyle=menu_cell_style_jscode, width=200, minWidth=200, maxWidth=260, pinned="left", resizable=False)
     for col in cols:
         if col != "メニュー名":
@@ -129,6 +132,7 @@ if store:
     grid_options = gb.build()
     grid_options['getRowNodeId'] = JsCode("function(data){ return data['row_id']; }")
 
+    # pre_selected_rowsもrow_idリストに！
     grid_response = AgGrid(
         filtered_df[cols + ["row_id"]],
         gridOptions=grid_options,
@@ -138,10 +142,13 @@ if store:
         allow_unsafe_jscode=True,
         pre_selected_rows=prev_selected_ids
     )
-    selected_rows = grid_response["selected_rows"]
+
     # 選択row_idをセッションに保存
+    # selected_rowsの各row_idを取得し、次回pre_selected_rowsに正確に渡す
+    selected_rows = grid_response["selected_rows"]
     if selected_rows is not None:
-        st.session_state[selected_key] = [row.get("row_id") for row in selected_rows if isinstance(row, dict) and row.get("row_id") is not None]
+        st.session_state[selected_key] = [row["row_id"] for row in selected_rows if isinstance(row, dict) and row.get("row_id") is not None]
+
     if selected_rows is not None and len(selected_rows) > 0:
         selected_df = pd.DataFrame(selected_rows)
         total = selected_df[["カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"]].sum()
@@ -153,7 +160,7 @@ if store:
             f"- 炭水化物: **{total['炭水化物 (g)']:.1f}g**"
         )
 
-        # ★ここからPFCバランス円グラフ
+        # PFCバランス円グラフ
         pfc_vals = [total["たんぱく質 (g)"], total["脂質 (g)"], total["炭水化物 (g)"]]
         pfc_labels = ["たんぱく質", "脂質", "炭水化物"]
         fig, ax = plt.subplots()
