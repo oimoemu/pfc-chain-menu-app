@@ -5,6 +5,7 @@ import jaconv
 import unidecode
 import matplotlib.pyplot as plt
 import os
+import matplotlib.font_manager as fm
 
 fontpath = "fonts/NotoSansJP-Regular.ttf"
 if not os.path.isfile(fontpath):
