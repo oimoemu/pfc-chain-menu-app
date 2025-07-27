@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
-import jaconv
-import unidecode
+import jaconv, unidecode
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 import os
@@ -15,21 +14,27 @@ df = pd.read_csv("menu_data_all_chains.csv")
 if "カロリー" not in df.columns:
     df["カロリー"] = 0
 
-def get_yomi(text):
-    hira = jaconv.kata2hira(jaconv.z2h(str(text), kana=True, digit=False, ascii=False))
-    kata = jaconv.hira2kata(hira)
-    roma = unidecode.unidecode(text)
-    return hira, kata, roma.lower()
-if not all(col in df.columns for col in ["店舗よみ", "店舗カナ", "店舗ローマ字"]):
-    df["店舗よみ"], df["店舗カナ"], df["店舗ローマ字"] = zip(*df["店舗名"].map(get_yomi))
+# ...（省略：検索・店舗選択ロジックはそのまま）...
+# filtered_df = ...（検索・絞り込み済みDataFrame）
 
-st.set_page_config(page_title="PFCチェーンメニュー", layout="wide")
-st.title("PFCチェーンメニュー検索")
+# 必要な表示列
+pfc_cols = [col for col in ["カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"] if col in df.columns]
+show_cols = ["メニュー名"] + pfc_cols
+df_show = filtered_df[show_cols].copy()
+df_show.insert(0, "追加", False)  # ←「追加」列（Boolean）
 
-# ▼ メニュー名だけ確実に10pxフォントにするCSS
+# ▼ グローバルCSSで追加欄40px幅＆メニュー名10px小フォント強制
 st.markdown("""
 <style>
-/* メニュー名列をより強く10px固定に */
+/* 追加欄（1列目） */
+[data-testid="stDataFrame"] table td:nth-child(1),
+[data-testid="stDataFrame"] table th:nth-child(1) {
+    min-width: 40px !important;
+    max-width: 40px !important;
+    width: 40px !important;
+    text-align: center !important;
+}
+/* メニュー名（2列目）は10pxで折り返し */
 [data-testid="stDataFrame"] table td:nth-child(2),
 [data-testid="stDataFrame"] table th:nth-child(2) {
     font-size: 10px !important;
@@ -37,18 +42,13 @@ st.markdown("""
     word-break: break-word !important;
     min-width: 100px !important;
     max-width: 220px !important;
-    line-height: 1.15 !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
-pfc_cols = [col for col in ["カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"] if col in df.columns]
-show_cols = ["メニュー名"] + pfc_cols
-df_show = df[show_cols].copy()
-df_show.insert(0, "追加", False)
-
+# 列幅指定
 col_cfg = {
-    "追加": st.column_config.CheckboxColumn(label="追加", width="xxsmall"),
+    "追加": st.column_config.CheckboxColumn(label="追加", width="xxsmall"),  # チェックボックスは大きさそのまま
     "メニュー名": st.column_config.TextColumn(label="メニュー名", width="medium"),
 }
 for c in pfc_cols:
