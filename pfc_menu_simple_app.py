@@ -6,13 +6,11 @@ import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 import os
 
-# ▼ フォント設定
 fontpath = "fonts/NotoSansJP-Regular.ttf"
 if not os.path.isfile(fontpath):
     st.error(f"指定フォントが見つかりません: {fontpath}")
 prop = fm.FontProperties(fname=fontpath)
 
-# ▼ データ読み込み
 df = pd.read_csv("menu_data_all_chains.csv")
 if "カロリー" not in df.columns:
     df["カロリー"] = 0
@@ -28,44 +26,27 @@ if not all(col in df.columns for col in ["店舗よみ", "店舗カナ", "店舗
 st.set_page_config(page_title="PFCチェーンメニュー", layout="wide")
 st.title("PFCチェーンメニュー検索")
 
-# ▼ グローバルCSS：追加欄50px・メニュー名10px＋折り返し
+# ▼ メニュー名だけ確実に10pxフォントにするCSS
 st.markdown("""
 <style>
-/* 追加欄 */
-[data-testid="stDataFrame"] table td:nth-child(1),
-[data-testid="stDataFrame"] table th:nth-child(1) {
-    min-width: 50px !important;
-    max-width: 50px !important;
-    width: 50px !important;
-    text-align: center !important;
-}
-/* メニュー名（2列目）*/
+/* メニュー名列をより強く10px固定に */
 [data-testid="stDataFrame"] table td:nth-child(2),
 [data-testid="stDataFrame"] table th:nth-child(2) {
     font-size: 10px !important;
     white-space: pre-wrap !important;
     word-break: break-word !important;
-    min-width: 120px !important;
+    min-width: 100px !important;
     max-width: 220px !important;
-}
-/* PFC（3列目以降）*/
-[data-testid="stDataFrame"] table td:nth-child(n+3),
-[data-testid="stDataFrame"] table th:nth-child(n+3) {
-    font-size: 10px !important;
-    min-width: 60px !important;
-    max-width: 80px !important;
+    line-height: 1.15 !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# ▼ （ここに店舗名入力～検索～絞り込みまで挿入OK）
-# --- ここでは全データを例示 ---
 pfc_cols = [col for col in ["カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"] if col in df.columns]
 show_cols = ["メニュー名"] + pfc_cols
 df_show = df[show_cols].copy()
 df_show.insert(0, "追加", False)
 
-# ▼ 列幅指定
 col_cfg = {
     "追加": st.column_config.CheckboxColumn(label="追加", width="xxsmall"),
     "メニュー名": st.column_config.TextColumn(label="メニュー名", width="medium"),
