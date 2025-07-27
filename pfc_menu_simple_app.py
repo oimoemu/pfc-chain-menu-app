@@ -4,6 +4,7 @@ from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, JsCode
 import jaconv
 import unidecode
 import matplotlib.pyplot as plt
+import os
 
 fontpath = "fonts/NotoSansJP-Regular.ttf"
 if not os.path.isfile(fontpath):
