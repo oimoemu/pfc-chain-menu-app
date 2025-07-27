@@ -69,9 +69,6 @@ if store:
     st.success(f"選択店舗：{store}")
     filtered_df = df[df["店舗名"] == store].copy()
 
-    # 「カテゴリ」欄を完全削除
-    filtered_df = filtered_df.drop(columns=["カテゴリ"], errors="ignore")
-
     # 必要なカラムのみ残す
     cols = [col for col in filtered_df.columns if col not in ["店舗名", "店舗よみ", "店舗カナ", "店舗ローマ字"]]
     display_cols = ["選択", "メニュー名"] + [col for col in cols if col != "メニュー名" and col != "選択"]
