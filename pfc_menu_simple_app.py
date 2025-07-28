@@ -5,9 +5,10 @@ import jaconv
 import unidecode
 import matplotlib.pyplot as plt
 
+# df作成時のみreset_indexし、row_idを一意につける
 df = pd.read_csv("menu_data_all_chains.csv")
 df = df.reset_index(drop=True)
-df["row_id"] = df.index.astype(str)  # ← ここで一意のrow_idを全体に付与
+df["row_id"] = df.index.astype(str)
 
 def get_yomi(text):
     hira = jaconv.kata2hira(jaconv.z2h(str(text), kana=True, digit=False, ascii=False))
@@ -55,14 +56,13 @@ if len(candidates) > 0:
             st.session_state["selected_store"] = c
 store = st.session_state.get("selected_store", None)
 
-# セッションで全カテゴリ横断の選択row_idリストを保持
 selected_key = "selected_row_ids"
 if selected_key not in st.session_state:
     st.session_state[selected_key] = []
 
 if store:
     st.success(f"選択店舗：{store}")
-    store_df = df[df["店舗名"] == store].copy()
+    store_df = df[df["店舗名"] == store]
 
     # カテゴリ選択
     category_options = store_df["カテゴリ"].dropna().unique().tolist()
@@ -73,7 +73,7 @@ if store:
         filtered_df = store_df.copy()
     else:
         filtered_df = store_df[store_df["カテゴリ"] == category].copy()
-    # filtered_df.reset_index(drop=True) は不要！
+    # ★ reset_indexもrow_id再生成も一切しない
 
     keyword = st.text_input("メニュー名で絞り込み（例：チーズ/カレーなど）")
     if keyword:
@@ -83,15 +83,11 @@ if store:
     ascending = st.radio("並び順", ["昇順", "降順"], horizontal=True) == "昇順"
     filtered_df = filtered_df.sort_values(by=sort_by, ascending=ascending)
 
-    # 表示カラムリスト（カテゴリなど不要なもの除く）
     cols = [col for col in filtered_df.columns if col not in ["店舗名", "店舗よみ", "店舗カナ", "店舗ローマ字", "カテゴリ"]]
 
-    # 今表示中のrow_id
     visible_row_ids = filtered_df["row_id"].tolist()
-    # 表示中で、選択済みのrow_idだけpre_selected_rowsに渡す
     pre_selected = [rid for rid in st.session_state[selected_key] if rid in visible_row_ids]
 
-    # カスタムstyle
     menu_cell_style_jscode = JsCode("""
         function(params) {
             let text = params.value || '';
@@ -146,17 +142,14 @@ if store:
         pre_selected_rows=pre_selected
     )
 
-    # チェックボックスの追加/削除をグローバル選択row_idリストに反映
     selected_rows = grid_response["selected_rows"]
     if selected_rows is not None:
         now_selected_ids = set(row.get("row_id") for row in selected_rows if isinstance(row, dict) and row.get("row_id") is not None)
         before_selected_ids = set(st.session_state[selected_key])
-        # 表示中で新規に選ばれたものを追加・外されたものを削除
-        # 非表示row_idはそのまま、表示中だけ追加/削除を反映
         to_keep = (before_selected_ids - set(visible_row_ids)) | now_selected_ids
         st.session_state[selected_key] = list(to_keep)
 
-    # 全カテゴリ横断で選択されているrow_idをdfから取得
+    # dfからrow_idで抽出
     selected_df = df[df["row_id"].isin(st.session_state[selected_key])]
     if not selected_df.empty:
         st.markdown("### ✅ 選択されているメニュー名")
@@ -170,7 +163,6 @@ if store:
             f"- 脂質: **{total['脂質 (g)']:.1f}g**\n"
             f"- 炭水化物: **{total['炭水化物 (g)']:.1f}g**"
         )
-        # PFC円グラフ
         pfc_vals = [total["たんぱく質 (g)"], total["脂質 (g)"], total["炭水化物 (g)"]]
         pfc_labels = ["たんぱく質", "脂質", "炭水化物"]
         fig, ax = plt.subplots()
