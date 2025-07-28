@@ -19,7 +19,7 @@ if "カロリー" not in df.columns:
 def get_yomi(text):
     hira = jaconv.kata2hira(jaconv.z2h(str(text), kana=True, digit=False, ascii=False))
     kata = jaconv.hira2kata(hira)
-    roma = unidecode.unidecode(text)  # ローマ字化
+    roma = unidecode.unidecode(text)
     return hira, kata, roma.lower()
 
 if not all(col in df.columns for col in ["店舗よみ", "店舗カナ", "店舗ローマ字"]):
@@ -31,7 +31,7 @@ st.title("PFCチェーンメニュー検索")
 st.markdown("""
     <style>
     .ag-header-cell-label {
-        font-size: 0.6em !important;
+        font-size: 0.8em !important;
         padding-top: 0px !important;
         padding-bottom: 0px !important;
     }
@@ -62,6 +62,11 @@ if len(candidates) > 0:
             st.session_state["selected_store"] = c
 store = st.session_state.get("selected_store", None)
 
+# --- ここからグローバル選択管理 ---
+selected_key = "selected_row_ids"
+if selected_key not in st.session_state:
+    st.session_state[selected_key] = []
+
 if store:
     st.success(f"選択店舗：{store}")
     store_df = df[df["店舗名"] == store]
@@ -90,14 +95,12 @@ if store:
     # 表示カラムリスト（カテゴリを除く）
     cols = [col for col in filtered_df.columns if col not in ["店舗名", "店舗よみ", "店舗カナ", "店舗ローマ字", "row_id", "カテゴリ"]]
 
-    # 選択状態をrow_idで管理
-    selected_key = "selected_row_ids"
-    if selected_key not in st.session_state:
-        st.session_state[selected_key] = []
+    # --- 今表示中のrow_idのみ取得 ---
+    visible_row_ids = filtered_df["row_id"].tolist()
+    # --- グローバルで選択されているrow_idと突き合わせて表示 ---
+    pre_selected = [rid for rid in st.session_state[selected_key] if rid in visible_row_ids]
 
-    prev_selected_ids = st.session_state[selected_key]
-
-    # カスタムstyle
+    # --- カスタムstyle
     menu_cell_style_jscode = JsCode("""
         function(params) {
             let text = params.value || '';
@@ -135,14 +138,11 @@ if store:
             gb.configure_column(col, width=36, minWidth=20, maxWidth=60, resizable=False, cellStyle=cell_style_jscode)
     gb.configure_column("row_id", hide=True)
 
-    # 行IDをrow_idに（getRowNodeId）
     grid_options = gb.build()
     grid_options['getRowNodeId'] = JsCode("function(data){ return data['row_id']; }")
-    grid_options['rowHeight'] = 40  # ← ここを追加！（好きな高さに調整OK）
     row_height = 40
     num_rows = len(filtered_df)
-    table_height = max(min(num_rows, 12), 8) * row_height + 60  # 8行以上12行以下で自動
-
+    table_height = max(min(num_rows, 12), 8) * row_height + 60
     grid_options['rowHeight'] = row_height
 
     grid_response = AgGrid(
@@ -150,24 +150,30 @@ if store:
         gridOptions=grid_options,
         update_mode=GridUpdateMode.SELECTION_CHANGED,
         fit_columns_on_grid_load=False,
-        height=table_height,  # ここも自動計算
+        height=table_height,
         allow_unsafe_jscode=True,
-        pre_selected_rows=prev_selected_ids
+        pre_selected_rows=pre_selected
     )
 
-    # 選択row_idをセッションに保存
+    # --- チェックボックスの追加/削除をグローバル選択row_idリストに反映 ---
     selected_rows = grid_response["selected_rows"]
     if selected_rows is not None:
-        st.session_state[selected_key] = [row.get("row_id") for row in selected_rows if isinstance(row, dict) and row.get("row_id") is not None]
+        now_selected_ids = set(row.get("row_id") for row in selected_rows if isinstance(row, dict) and row.get("row_id") is not None)
+        before_selected_ids = set(st.session_state[selected_key])
+        # 非表示row_idはそのまま、表示中だけ追加/削除を反映
+        # 1. visible_row_idsにあって今チェックされているものを追加
+        # 2. visible_row_idsにあってチェックが外されたものを除去
+        to_keep = (before_selected_ids - set(visible_row_ids)) | now_selected_ids
+        st.session_state[selected_key] = list(to_keep)
 
-    if selected_rows is not None and len(selected_rows) > 0:
-        selected_df = pd.DataFrame(selected_rows)
-
-        selected_names = selected_df["メニュー名"].tolist()
+    # --- 選択メニュー名リストの表示
+    # 全カテゴリ横断で選択されているrow_idをdfから取得
+    selected_df = df[df["row_id"].astype(str).isin(st.session_state[selected_key])] if "row_id" in df.columns else pd.DataFrame()
+    if not selected_df.empty:
         st.markdown("### ✅ 選択されているメニュー名")
-        for name in selected_names:
+        for name in selected_df["メニュー名"].tolist():
             st.write("・" + str(name))
-        
+        # 合計も計算
         total = selected_df[["カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"]].sum()
         st.markdown(
             f"### ✅ 選択メニューの合計\n"
@@ -176,34 +182,12 @@ if store:
             f"- 脂質: **{total['脂質 (g)']:.1f}g**\n"
             f"- 炭水化物: **{total['炭水化物 (g)']:.1f}g**"
         )
-
-        # PFCバランス円グラフ
-        pfc_vals = [
-            total.get("たんぱく質 (g)", 0),
-            total.get("脂質 (g)", 0),
-            total.get("炭水化物 (g)", 0)
-        ]
+        # PFC円グラフ
+        pfc_vals = [total["たんぱく質 (g)"], total["脂質 (g)"], total["炭水化物 (g)"]]
         pfc_labels = ["たんぱく質", "脂質", "炭水化物"]
-        colors = ["#4e79a7", "#f28e2b", "#e15759"]
         fig, ax = plt.subplots()
-        wedges, texts, autotexts = ax.pie(
-            pfc_vals,
-            labels=pfc_labels,
-            autopct="%.1f%%",
-            startangle=90,
-            counterclock=False,
-            colors=colors,
-            textprops={'fontsize': 10, 'fontproperties': prop}
-        )
-        ax.set_title("PFCバランス", fontproperties=prop)
-        for text, color in zip(texts, colors):
-            text.set_color(color)
-            text.set_fontproperties(prop)
-        plt.tight_layout()
+        ax.pie(pfc_vals, labels=pfc_labels, autopct="%.1f%%", startangle=90, counterclock=False)
+        ax.set_title("PFCバランス")
         st.pyplot(fig)
-    else:
-        st.info("左端のチェックを選択してください")
-
 else:
     st.info("店舗名を入力してください（ひらがな・カタカナ・英語もOK）")
-
