@@ -1,3 +1,11 @@
+import requests
+CSV_URL = "https://github.com/oimoemu/pfc-mcdonalds-auto/raw/main/menu_data_all_chains.csv"
+with open("menu_data_all_chains.csv", "wb") as f:
+    f.write(requests.get(CSV_URL).content)
+import requests
+CSV_URL = "https://github.com/oimoemu/pfc-mcdonalds-auto/raw/main/menu_data_all_chains.csv"
+with open("menu_data_all_chains.csv", "wb") as f:
+    f.write(requests.get(CSV_URL).content)
 import streamlit as st
 import pandas as pd
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, JsCode
