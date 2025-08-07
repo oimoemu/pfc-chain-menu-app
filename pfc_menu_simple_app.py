@@ -166,61 +166,57 @@ if store:
     # 選択row_idをセッションに保存
     selected_rows = grid_response["selected_rows"]
     if selected_rows is not None:
+        # 選択row_idリストはセッションでグローバル管理
         st.session_state[selected_key] = [row.get("row_id") for row in selected_rows if isinstance(row, dict) and row.get("row_id") is not None]
 
-    # ...（チェック状態のrow_idリスト更新は今のまま）...
+    # ここが超重要！（AgGridの「今表示されている選択」ではなく「全体でチェック済み」のみで集計）
+    selected_df = df[df["row_id"].isin(st.session_state[selected_key])]
+    if not selected_df.empty:
+        selected_names = selected_df["メニュー名"].tolist()
+        st.markdown("### ✅ 選択されているメニュー名")
+        for name in selected_names:
+            st.write("・" + str(name))
+        
+        # ↓以下は合計・円グラフなどはそのままでOK
+        pfc_cols = ["カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"]
+        for c in pfc_cols:
+            if c not in selected_df.columns:
+                selected_df[c] = 0
+        total = selected_df[pfc_cols].apply(pd.to_numeric, errors='coerce').sum().fillna(0)
 
-# AgGrid選択row_idからdf全体の選択済みメニューを抽出
-selected_df = df[df["row_id"].isin(st.session_state[selected_key])]
-
-if not selected_df.empty:
-    selected_names = selected_df["メニュー名"].tolist()
-    st.markdown("### ✅ 選択されているメニュー名")
-    for name in selected_names:
-        st.write("・" + str(name))
-    
-    # 数値列だけ抜き出し、安全に合計
-    pfc_cols = ["カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"]
-    for c in pfc_cols:
-        if c not in selected_df.columns:
-            selected_df[c] = 0
-    total = selected_df[pfc_cols].apply(pd.to_numeric, errors='coerce').sum().fillna(0)
-
-    st.markdown(
-        f"### ✅ 選択メニューの合計\n"
-        f"- カロリー: **{total.get('カロリー',0):.0f}kcal**\n"
-        f"- たんぱく質: **{total.get('たんぱく質 (g)',0):.1f}g**\n"
-        f"- 脂質: **{total.get('脂質 (g)',0):.1f}g**\n"
-        f"- 炭水化物: **{total.get('炭水化物 (g)',0):.1f}g**"
-    )
-
-    # PFC円グラフ
-    pfc_vals = [
-        total.get("たんぱく質 (g)", 0),
-        total.get("脂質 (g)", 0),
-        total.get("炭水化物 (g)", 0)
-    ]
-    if sum(pfc_vals) > 0:
-        pfc_labels = ["たんぱく質", "脂質", "炭水化物"]
-        colors = ["#4e79a7", "#f28e2b", "#e15759"]
-        fig, ax = plt.subplots()
-        wedges, texts, autotexts = ax.pie(
-            pfc_vals,
-            labels=pfc_labels,
-            autopct="%.1f%%",
-            startangle=90,
-            counterclock=False,
-            colors=colors,
-            # textprops={'fontsize': 10, 'fontproperties': prop} # ← prop使うなら定義必須
+        st.markdown(
+            f"### ✅ 選択メニューの合計\n"
+            f"- カロリー: **{total.get('カロリー',0):.0f}kcal**\n"
+            f"- たんぱく質: **{total.get('たんぱく質 (g)',0):.1f}g**\n"
+            f"- 脂質: **{total.get('脂質 (g)',0):.1f}g**\n"
+            f"- 炭水化物: **{total.get('炭水化物 (g)',0):.1f}g**"
         )
-        ax.set_title("PFCバランス")
-        plt.tight_layout()
-        st.pyplot(fig)
-    else:
-        st.info("PFC値が0のため円グラフを表示できません")
-else:
-    st.info("左端のチェックを選択してください")
 
+        # PFC円グラフ
+        pfc_vals = [
+            total.get("たんぱく質 (g)", 0),
+            total.get("脂質 (g)", 0),
+            total.get("炭水化物 (g)", 0)
+        ]
+        if sum(pfc_vals) > 0:
+            pfc_labels = ["たんぱく質", "脂質", "炭水化物"]
+            colors = ["#4e79a7", "#f28e2b", "#e15759"]
+            fig, ax = plt.subplots()
+            wedges, texts, autotexts = ax.pie(
+                pfc_vals,
+                labels=pfc_labels,
+                autopct="%.1f%%",
+                startangle=90,
+                counterclock=False,
+                colors=colors,
+            )
+            ax.set_title("PFCバランス")
+            plt.tight_layout()
+            st.pyplot(fig)
+        else:
+            st.info("PFC値が0のため円グラフを表示できません")
+    else:
+        st.info("左端のチェックを選択してください")
 
 else:
     st.info("店舗名を入力してください（ひらがな・カタカナ・英語もOK）")
