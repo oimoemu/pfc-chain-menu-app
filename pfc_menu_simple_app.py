@@ -8,6 +8,14 @@ with open("menu_data_all_chains.csv", "wb") as f:
     f.write(requests.get(CSV_URL).content)
 import streamlit as st
 import pandas as pd
+
+# ← 必ず最初の読み込み直後だけ
+df = pd.read_csv("menu_data_all_chains.csv")
+df = df.reset_index(drop=True)
+df["row_id"] = df.index.astype(str)
+
+# ...以降、どこでもdf["row_id"]は必ず存在します...
+
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, JsCode
 import jaconv
 import unidecode
