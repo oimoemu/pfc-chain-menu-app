@@ -1,36 +1,36 @@
-# ── 最新CSVをGitHubから毎回取得（自動化） ─────────────────────────────
-import requests
+# ── 初回のみCSVをGitHubから取得（存在しないときだけDL） ───────────────
+import os, requests
 CSV_URL = "https://github.com/oimoemu/pfc-mcdonalds-auto/raw/main/menu_data_all_chains.csv"
-with open("menu_data_all_chains.csv", "wb") as f:
-    f.write(requests.get(CSV_URL).content)
+CSV_FILE = "menu_data_all_chains.csv"
+if not os.path.exists(CSV_FILE):
+    with open(CSV_FILE, "wb") as f:
+        f.write(requests.get(CSV_URL).content)
 
-# ── 通常インポート ─────────────────────────────────────────────────
+# ── 通常インポート ───────────────────────────────────────────────
 import streamlit as st
 import pandas as pd
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, JsCode
 import jaconv
 import unidecode
 import matplotlib.pyplot as plt
-import os
-import matplotlib.font_manager as fm
+import hashlib
 
-# ── フォント（あれば使う／なければデフォルト） ──────────────────────
-fontpath = "fonts/NotoSansJP-Regular.ttf"
-prop = None
-if os.path.isfile(fontpath):
-    try:
-        prop = fm.FontProperties(fname=fontpath)
-    except Exception:
-        prop = None
+# ── データ読み込み（dfはここで一度だけ読む） ──────────────────────
+df = pd.read_csv(CSV_FILE)
 
-# ── データ読み込み（dfはここで一度だけ読む＆row_id付与） ─────────────
-df = pd.read_csv("menu_data_all_chains.csv")
-df = df.reset_index(drop=True)
-df["row_id"] = df.index.astype(str)  # ← 全体で一意に固定（以後、再生成しない）
+# PFCのカラムがなければ補完
 if "カロリー" not in df.columns:
     df["カロリー"] = 0
 
-# かな・カナ・ローマ字検索用よみ列（無ければ生成）
+# ── 安定row_id（店舗名＋メニュー名のハッシュ）を一度だけ付与 ────────
+def make_row_id(row):
+    key = f"{row.get('店舗名','')}|{row.get('メニュー名','')}"
+    return hashlib.sha1(key.encode("utf-8")).hexdigest()[:12]
+
+if "row_id" not in df.columns:
+    df["row_id"] = df.apply(make_row_id, axis=1)
+
+# ── かな・カナ・ローマ字検索用の列を生成（無ければ） ───────────────
 def get_yomi(text):
     s = str(text)
     hira = jaconv.kata2hira(jaconv.z2h(s, kana=True, digit=False, ascii=False))
@@ -38,14 +38,13 @@ def get_yomi(text):
     roma = unidecode.unidecode(s).lower()
     return hira, kata, roma
 
-if not all(col in df.columns for col in ["店舗よみ", "店舗カナ", "店舗ローマ字"]):
+if not all(c in df.columns for c in ["店舗よみ", "店舗カナ", "店舗ローマ字"]):
     df["店舗よみ"], df["店舗カナ"], df["店舗ローマ字"] = zip(*df["店舗名"].map(get_yomi))
 
-# ── Streamlit UI ───────────────────────────────────────────────────
+# ── UI設定 ───────────────────────────────────────────────────────
 st.set_page_config(page_title="PFCチェーンメニュー", layout="wide")
 st.title("PFCチェーンメニュー検索")
 
-# ヘッダ文字サイズ少し小さく
 st.markdown("""
     <style>
     .ag-header-cell-label {
@@ -56,8 +55,9 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 店舗あいまい検索（ひらがな・カタカナ・英字・部分一致）
+# ── 店舗あいまい検索（ひらがな/カタカナ/英字/部分一致） ──────────────
 store_input = st.text_input("店舗名を入力（ひらがな・カタカナ・英語・一部でも可）", value="", key="store_search")
+
 candidates = []
 if store_input:
     hira = jaconv.kata2hira(jaconv.z2h(store_input, kana=True, digit=False, ascii=False))
@@ -84,13 +84,14 @@ if candidates:
         if cols_btn[i % 2].button(c, key=f"select_{c}"):
             st.session_state["selected_store"] = c
 
-store = st.session_state.get("selected_store")
+store = st.session_state.get("selected_store", None)
 
 # 全カテゴリ横断の選択row_idを保持
 selected_key = "selected_row_ids"
 if selected_key not in st.session_state:
     st.session_state[selected_key] = []
 
+# ── 店舗選択後の表示 ─────────────────────────────────────────────
 if store:
     st.success(f"選択店舗：{store}")
     store_df = df[df["店舗名"] == store].copy()
@@ -99,10 +100,10 @@ if store:
     category_options = store_df["カテゴリ"].dropna().unique().tolist()
     category = st.selectbox("カテゴリを選択してください", ["（全て表示）"] + category_options)
 
-    # カテゴリフィルタ（reset_indexしない！row_id再生成しない！）
+    # カテゴリフィルタ（reset_indexもrow_id再生成もしない！）
     filtered_df = store_df if category == "（全て表示）" else store_df[store_df["カテゴリ"] == category]
 
-    # メニュー名キーワード
+    # メニュー名キーワード絞り込み
     keyword = st.text_input("メニュー名で絞り込み（例：チーズ/カレーなど）")
     if keyword:
         filtered_df = filtered_df[filtered_df["メニュー名"].str.contains(keyword, case=False, na=False)]
@@ -113,10 +114,12 @@ if store:
     if sort_by in filtered_df.columns:
         filtered_df = filtered_df.sort_values(by=sort_by, ascending=ascending)
 
-    # 表示カラム（row_idは隠す／カテゴリ列は表示しない）
+    # 表示カラム（カテゴリは表示しない／row_idは隠し列として含める）
     cols = [c for c in filtered_df.columns if c not in ["店舗名", "店舗よみ", "店舗カナ", "店舗ローマ字", "カテゴリ"]]
+    if "row_id" not in cols:
+        cols = cols + ["row_id"]
 
-    # 可視行のrow_id と 事前選択
+    # 可視行のrow_idと事前選択
     visible_row_ids = filtered_df["row_id"].tolist()
     pre_selected = [rid for rid in st.session_state[selected_key] if rid in visible_row_ids]
 
@@ -173,14 +176,14 @@ if store:
         pre_selected_rows=pre_selected
     )
 
-    # 選択のマージ保存（非表示は保持／可視の解除は反映）
-    selected_rows = grid_response["selected_rows"]
+    # 選択のマージ保存（非表示は保持／可視のON/OFFだけ反映）
+    selected_rows = grid_response.get("selected_rows", [])
     if selected_rows is not None:
         now_selected_ids = set(r.get("row_id") for r in selected_rows if isinstance(r, dict) and r.get("row_id"))
         before = set(st.session_state[selected_key])
         st.session_state[selected_key] = list((before - set(visible_row_ids)) | now_selected_ids)
 
-    # df全体からrow_idで抽出して集計・可視化（カテゴリをまたいでも保持）
+    # df全体からrow_idで抽出して集計・可視化（カテゴリまたいでも保持）
     selected_df = df[df["row_id"].isin(st.session_state[selected_key])]
     if not selected_df.empty:
         st.markdown("### ✅ 選択されているメニュー名")
@@ -192,7 +195,7 @@ if store:
         for c in pfc_cols:
             if c not in selected_df.columns:
                 selected_df[c] = 0
-        total = selected_df[pfc_cols].apply(pd.to_numeric, errors='coerce').sum().fillna(0)
+        total = selected_df[pfc_cols].apply(pd.to_numeric, errors="coerce").sum().fillna(0)
 
         kcal = float(total.get("カロリー", 0) or 0)
         protein = float(total.get("たんぱく質 (g)", 0) or 0)
@@ -208,26 +211,11 @@ if store:
         )
 
         # 円グラフ（合計0なら表示しない）
-        pfc_vals = [protein, fat, carb]
-        if sum(pfc_vals) > 0:
-            pfc_labels = ["たんぱく質", "脂質", "炭水化物"]
-            colors = ["#4e79a7", "#f28e2b", "#e15759"]
+        vals = [protein, fat, carb]
+        if sum(vals) > 0:
             fig, ax = plt.subplots()
-            if prop is not None:
-                wedges, texts, autotexts = ax.pie(
-                    pfc_vals, labels=pfc_labels, autopct="%.1f%%",
-                    startangle=90, counterclock=False, colors=colors,
-                    textprops={'fontsize': 10, 'fontproperties': prop}
-                )
-                ax.set_title("PFCバランス", fontproperties=prop)
-                for text, color in zip(texts, colors):
-                    text.set_color(color)
-                    text.set_fontproperties(prop)
-            else:
-                ax.pie(pfc_vals, labels=pfc_labels, autopct="%.1f%%",
-                       startangle=90, counterclock=False, colors=colors)
-                ax.set_title("PFCバランス")
-            plt.tight_layout()
+            ax.pie(vals, labels=["たんぱく質", "脂質", "炭水化物"], autopct="%.1f%%", startangle=90, counterclock=False)
+            ax.set_title("PFCバランス")
             st.pyplot(fig)
         else:
             st.info("PFC値が0のため円グラフを表示できません")
