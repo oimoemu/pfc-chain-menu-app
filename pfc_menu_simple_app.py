@@ -13,7 +13,8 @@ import pandas as pd
 df = pd.read_csv("menu_data_all_chains.csv")
 df = df.reset_index(drop=True)
 df["row_id"] = df.index.astype(str)
-
+if "カロリー" not in df.columns:
+    df["カロリー"] = 0
 # ...以降、どこでもdf["row_id"]は必ず存在します...
 
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, JsCode
@@ -27,10 +28,6 @@ fontpath = "fonts/NotoSansJP-Regular.ttf"
 if not os.path.isfile(fontpath):
     st.error(f"指定フォントが見つかりません: {fontpath}")
 prop = fm.FontProperties(fname=fontpath)
-
-df = pd.read_csv("menu_data_all_chains.csv")
-if "カロリー" not in df.columns:
-    df["カロリー"] = 0
 
 def get_yomi(text):
     hira = jaconv.kata2hira(jaconv.z2h(str(text), kana=True, digit=False, ascii=False))
@@ -98,10 +95,6 @@ if store:
     sort_by = st.radio("並び替え基準", ["カロリー", "たんぱく質 (g)", "脂質 (g)", "炭水化物 (g)"], horizontal=True)
     ascending = st.radio("並び順", ["昇順", "降順"], horizontal=True) == "昇順"
     filtered_df = filtered_df.sort_values(by=sort_by, ascending=ascending)
-
-    # インデックスをリセットし、row_id列を生成
-    filtered_df = filtered_df.reset_index(drop=True)
-    filtered_df["row_id"] = filtered_df.index.astype(str)
 
     # 表示カラムリスト（カテゴリを除く）
     cols = [col for col in filtered_df.columns if col not in ["店舗名", "店舗よみ", "店舗カナ", "店舗ローマ字", "row_id", "カテゴリ"]]
@@ -175,7 +168,31 @@ if store:
     selected_rows = grid_response["selected_rows"]
     if selected_rows is not None:
         # 選択row_idリストはセッションでグローバル管理
-        st.session_state[selected_key] = [row.get("row_id") for row in selected_rows if isinstance(row, dict) and row.get("row_id") is not None]
+        # 可視行のrow_id
+visible_row_ids = filtered_df["row_id"].tolist()
+
+# 画面に出す時点で、可視行 ∩ 既存選択をpre_selectedに
+pre_selected = [rid for rid in st.session_state[selected_key] if rid in visible_row_ids]
+
+grid_response = AgGrid(
+    filtered_df[cols + ["row_id"]],
+    gridOptions=grid_options,
+    update_mode=GridUpdateMode.SELECTION_CHANGED,
+    fit_columns_on_grid_load=False,
+    height=table_height,
+    allow_unsafe_jscode=True,
+    pre_selected_rows=pre_selected
+)
+
+# 追加/解除をマージして保存（非表示は維持）
+selected_rows = grid_response["selected_rows"]
+if selected_rows is not None:
+    now_selected_ids = set(
+        row.get("row_id") for row in selected_rows
+        if isinstance(row, dict) and row.get("row_id") is not None
+    )
+    before = set(st.session_state[selected_key])
+    st.session_state[selected_key] = list( (before - set(visible_row_ids)) | now_selected_ids )
 
     # ここが超重要！（AgGridの「今表示されている選択」ではなく「全体でチェック済み」のみで集計）
     selected_df = df[df["row_id"].isin(st.session_state[selected_key])]
